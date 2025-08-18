@@ -1,31 +1,85 @@
-﻿<!DOCTYPE html><html><head><meta charset='utf-8'><title>FAQ Studio</title>
-<style>body{font-family:system-ui,Arial,sans-serif;max-width:800px;margin:24px auto}
-label{display:block;margin:10px 0 4px} textarea,input,select{width:100%;padding:8px}
-button{margin-top:12px;padding:10px 14px;cursor:pointer}
-.warn{background:#fff7d6;border:1px solid #e7c200;padding:10px;margin-top:10px}
-.ok{background:#e9fff2;border:1px solid #19a34a;padding:10px;margin-top:10px}</style></head>
-<body><h1>Soru Girişi</h1>
-<form id="qform">
-<label>Soru</label><textarea name="question" rows="3" required></textarea>
-<button type="button" id="btnCheck">Benzer Soru Var mı?</button><div id="dupBox"></div>
-<label>Cevap</label><textarea name="answer" rows="3" required></textarea>
-<label>Anahtar Kelimeler (virgüllerle)</label><input type="text" name="keywords" required />
-<label>Kategori</label><select name="category" required>
-{% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
-</select>
-<button type="submit">Kaydet</button><div id="saveBox"></div></form>
-<script>
-const form=document.getElementById('qform'),dupBox=document.getElementById('dupBox'),saveBox=document.getElementById('saveBox');
-document.getElementById('btnCheck').onclick=async()=>{
-  dupBox.innerHTML='Kontrol ediliyor...';
-  const fd=new FormData(form); const f2=new FormData(); f2.append('question',fd.get('question'));
-  const r=await fetch('/check-duplicate',{method:'POST',body:f2}); const d=await r.json();
-  if(d.duplicate){dupBox.innerHTML=<div class="warn"><b>Benzer soru (sim=):</b><br/><i></i><p>Yine de eklemek istersen altta Kaydet.</p></div>;}
-  else{dupBox.innerHTML=<div class="ok">Benzer soru yok (veya eşik altı). Ekleyebilirsin.</div>;}
-};
-form.onsubmit=async(e)=>{e.preventDefault(); saveBox.innerHTML='Kaydediliyor...';
-  const r=await fetch('/add',{method:'POST',body:new FormData(form)}); const d=await r.json();
-  if(d.ok){saveBox.innerHTML='<div class="ok">Kaydedildi (JSON + DB) ✅</div>'; form.reset(); dupBox.innerHTML='';}
-  else{saveBox.innerHTML='<div class="warn">Kaydedilemedi.</div>';}
-};
-</script></body></html>
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>FAQ Studio</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; max-width: 800px; margin: 24px auto; }
+    label { display:block; margin:10px 0 4px; }
+    textarea, input[type=text], select { width:100%; padding:8px; box-sizing: border-box; }
+    button { margin-top:12px; padding:10px 14px; cursor:pointer; }
+    .warn { background:#fff7d6; border:1px solid #e7c200; padding:10px; margin-top:10px; }
+    .ok   { background:#e9fff2; border:1px solid #19a34a; padding:10px; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <h1>Soru Girişi</h1>
+
+  <!-- Fallback için method/action veriyoruz; JS varsa onsubmit engellenecek -->
+  <form id="qform" method="post" action="/add">
+    <label>Soru</label>
+    <textarea name="question" rows="3" required></textarea>
+
+    <button type="button" id="btnCheck">Benzer Soru Var mı?</button>
+    <div id="dupBox"></div>
+
+    <label>Cevap</label>
+    <textarea name="answer" rows="3" required></textarea>
+
+    <label>Anahtar Kelimeler (virgüllerle)</label>
+    <input type="text" name="keywords" placeholder="tahakkuk,vergi,..." required />
+
+    <label>Kategori</label>
+    <select name="category" required>
+      {% for c in categories %}
+        <option value="{{ c }}">{{ c }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit">Kaydet</button>
+    <div id="saveBox"></div>
+  </form>
+
+  <script>
+    const form = document.getElementById('qform');
+    const dupBox = document.getElementById('dupBox');
+    const saveBox = document.getElementById('saveBox');
+
+    document.getElementById('btnCheck').onclick = async () => {
+      try {
+        dupBox.textContent = 'Kontrol ediliyor...';
+        const onlyQ = new FormData();
+        onlyQ.append('question', new FormData(form).get('question'));
+        const resp = await fetch('/check-duplicate', { method:'POST', body: onlyQ });
+        const data = await resp.json();
+        if (data.duplicate) {
+          dupBox.innerHTML = `<div class="warn"><b>Benzer soru (sim=${(data.similarity||0).toFixed(2)}):</b><br/><i>${data.match.question}</i><p>Yine de eklemek istersen Kaydet’e bas.</p></div>`;
+        } else {
+          dupBox.innerHTML = `<div class="ok">Benzer soru yok (veya eşik altı). Ekleyebilirsin.</div>`;
+        }
+      } catch (e) {
+        dupBox.innerHTML = `<div class="warn">Kontrol sırasında hata: ${e}</div>`;
+      }
+    };
+
+    form.onsubmit = async (e) => {
+      e.preventDefault(); // SAYFA YENİLEME YOK
+      try {
+        saveBox.textContent = 'Kaydediliyor...';
+        const fd = new FormData(form);
+        const resp = await fetch('/add', { method:'POST', body: fd });
+        const data = await resp.json();
+        if (data.ok) {
+          saveBox.innerHTML = '<div class="ok">Kaydedildi (JSON + DB) ✅</div>';
+          form.reset();
+          dupBox.innerHTML = '';
+        } else {
+          saveBox.innerHTML = '<div class="warn">Kaydedilemedi.</div>';
+        }
+      } catch (e) {
+        saveBox.innerHTML = `<div class="warn">Hata: ${e}</div>`;
+      }
+    };
+  </script>
+</body>
+</html>
