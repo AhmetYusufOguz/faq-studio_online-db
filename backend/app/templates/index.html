@@ -186,6 +186,10 @@
     };
 
     // === CATEGORY SELECTION ===
+    // Kategori dropdown'u açıldığında kategorileri yükle
+    catSel.addEventListener('focus', loadCategories);
+    catSel.addEventListener('click', loadCategories);
+    
     catSel.addEventListener('change', () => {
       if (catSel.value === '__new__') {
         const yeni = prompt('Yeni kategori adı:');
@@ -367,33 +371,38 @@
     }
 
     // === LOAD CATEGORIES ===
+    let categoriesLoaded = false; // Kategoriler yüklenmiş mi?
+
     async function loadCategories() {
+      if (categoriesLoaded) return; // Zaten yüklenmişse tekrar yükleme
+      
       try {
         const response = await fetch('/categories.json');
         if (!response.ok) throw new Error('Kategoriler yüklenemedi');
         
         const categories = await response.json();
-        
-        // Clear existing options except the first two
-        while (catSel.children.length > 2) {
-          catSel.removeChild(catSel.lastElementChild);
-        }
-        
-        // Add categories
-        categories.forEach(category => {
-          const option = document.createElement('option');
-          option.value = category;
-          option.textContent = category;
-          catSel.insertBefore(option, catSel.lastElementChild); // Insert before "Yeni kategori ekle"
-        });
+        populateCategories(categories);
+        categoriesLoaded = true;
         
       } catch (error) {
         console.error('Kategori yükleme hatası:', error);
       }
     }
 
-    // Load categories on page load
-    loadCategories();
+    function populateCategories(categories) {
+      // Clear existing options except the first two
+      while (catSel.children.length > 2) {
+        catSel.removeChild(catSel.lastElementChild);
+      }
+      
+      // Add categories
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        catSel.insertBefore(option, catSel.lastElementChild); // Insert before "Yeni kategori ekle"
+      });
+    }
 
     // === EVENT LISTENERS ===
 
