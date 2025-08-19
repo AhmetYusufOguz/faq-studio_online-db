@@ -72,6 +72,12 @@ def index(request: Request):
         {"request": request, "categories": load_categories(), "th_default": SIM_THRESHOLD}
     )
 
+# YENİ ENDPOINT: Kategorileri JSON olarak döndür
+@app.get("/categories.json")
+def get_categories():
+    """Kategorileri JSON formatında döndürür"""
+    return load_categories()
+
 @app.post("/check-duplicate")
 def check_duplicate(
     request: Request,
@@ -207,4 +213,3 @@ def stats_total():
         cur.execute("SELECT COUNT(*) AS total FROM questions")
         row = cur.fetchone()
         return {"total": row["total"]}
-

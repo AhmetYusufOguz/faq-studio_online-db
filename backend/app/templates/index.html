@@ -366,6 +366,35 @@
       });
     }
 
+    // === LOAD CATEGORIES ===
+    async function loadCategories() {
+      try {
+        const response = await fetch('/categories.json');
+        if (!response.ok) throw new Error('Kategoriler yüklenemedi');
+        
+        const categories = await response.json();
+        
+        // Clear existing options except the first two
+        while (catSel.children.length > 2) {
+          catSel.removeChild(catSel.lastElementChild);
+        }
+        
+        // Add categories
+        categories.forEach(category => {
+          const option = document.createElement('option');
+          option.value = category;
+          option.textContent = category;
+          catSel.insertBefore(option, catSel.lastElementChild); // Insert before "Yeni kategori ekle"
+        });
+        
+      } catch (error) {
+        console.error('Kategori yükleme hatası:', error);
+      }
+    }
+
+    // Load categories on page load
+    loadCategories();
+
     // === EVENT LISTENERS ===
 
     // Recent modal events
