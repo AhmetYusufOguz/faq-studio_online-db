@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 from .db import get_conn, init_db
+from fastapi import HTTPException
 
 # Docker Compose ile çalıştırma:
 # docker compose build api
@@ -16,7 +17,7 @@ from .db import get_conn, init_db
 # Başlatma          :   docker compose up -d
 
 # PostgreSQL'e bakma:   docker exec -it ai_faq_db psql -U faq -d faqdb
-# Soruları listeleme:   SELECT id, question, category, created_at FROM questions ORDER BY id DESC LIMIT 10;
+# Soruları listeleme:   SELECT id, question, category, created_at FROM questions ORDER BY id DESC;
 
 load_dotenv()
 app = FastAPI(title="FAQ Studio")
@@ -106,12 +107,23 @@ def add_item(
     vec = embed(question)
     vec_str = "[" + ",".join(f"{x:.6f}" for x in vec.tolist()) + "]"
 
-    # Append to JSON (tolerate BOM / empty)
+    # Önce veritabanına ekle ve ID'yi al
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO questions (question, answer, keywords, category, embedding) "
+            "VALUES (%s, %s, %s, %s, %s::vector) RETURNING id",
+            (question, answer, keywords, category, vec_str)
+        )
+        result = cur.fetchone()
+        new_id = result.get("id") if hasattr(result, 'get') else result[0]
+        conn.commit()
+
+    # Şimdi JSON'a ekle (ID'yi biliyoruz)
     raw = pathlib.Path(JSON_PATH).read_text(encoding="utf-8-sig")
     if not raw.strip():
         raw = "[]"
     data = json.loads(raw)
-    data.append({"question": question, "answer": answer, "keywords": keywords, "category": category})
+    data.append({"id": new_id, "question": question, "answer": answer, "keywords": keywords, "category": category})
     pathlib.Path(JSON_PATH).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # Update categories.json
@@ -120,15 +132,7 @@ def add_item(
         cats.append(category)
         pathlib.Path(CATEGORIES_PATH).write_text(json.dumps(cats, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    # Insert into DB
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            "INSERT INTO questions (question, answer, keywords, category, embedding) "
-            "VALUES (%s, %s, %s, %s, %s::vector)",
-            (question, answer, keywords, category, vec_str)
-        )
-        conn.commit()
-    return {"ok": True}
+    return {"ok": True, "id": new_id}
 
 @app.get("/questions")
 def list_questions(limit: int = 50, offset: int = 0):
@@ -148,3 +152,27 @@ def questions_table(request: Request):
         )
         rows = cur.fetchall()
     return templates.TemplateResponse("questions.html", {"request": request, "rows": rows})
+
+@app.delete("/questions/{qid}")
+def delete_question(qid: int):
+    # önce DB'den sil
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("DELETE FROM questions WHERE id = %s RETURNING id", (qid,))
+        deleted = cur.fetchone()
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Soru bulunamadı")
+        conn.commit()
+
+    # sonra JSON'dan sil
+    import json, pathlib
+    data_file = pathlib.Path(JSON_PATH)
+    try:
+        data = json.loads(data_file.read_text(encoding="utf-8"))
+    except Exception:
+        data = []
+
+    # JSON içinden aynı id'yi eşleştirip çıkar
+    data = [item for item in data if item.get("id") != qid]
+    data_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    return {"ok": True, "deleted_id": qid}

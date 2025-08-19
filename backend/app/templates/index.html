@@ -51,7 +51,7 @@
         <div id="recentLoading" style="padding:14px;">Yükleniyor…</div>
         <table id="recentTable" style="width:100%; border-collapse:collapse; display:none;">
           <thead>
-            <tr>
+            <tr data-row-id="${x.id ?? ''}">
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">ID</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Soru</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Kategori</th>
@@ -135,11 +135,14 @@
           const safe = (s)=> String(s ?? '').replace(/[<>]/g, ch => ({'<':'&lt;','>':'&gt;'}[ch]));
           for(const x of rows){
             tbody.insertAdjacentHTML('beforeend',
-              `<tr>
+              `<tr data-row-id="${x.id ?? ''}">
                  <td style="border-bottom:1px solid #222;padding:8px;">${x.id ?? ''}</td>
                  <td style="border-bottom:1px solid #222;padding:8px;">${safe(x.question)}</td>
                  <td style="border-bottom:1px solid #222;padding:8px;">${safe(x.category)}</td>
                  <td style="border-bottom:1px solid #222;padding:8px;">${safe(x.created_at)}</td>
+                 <td style="border-bottom:1px solid #222;padding:8px;">
+                    <button class="btn-del" data-id="${x.id ?? ''}" style="background:#933;color:#fff;border:0;padding:6px 10px;cursor:pointer;">Sil</button>
+                  </td>
                </tr>`);
           }
         }
@@ -153,6 +156,23 @@
     }
     document.getElementById('btnRecent').onclick = async ()=>{ openRecent(); await loadRecent(); };
     document.getElementById('refreshRecent').onclick = loadRecent;
+    document.getElementById('recentTbody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('.btn-del');
+      if (!btn) return;
+      const id = btn.getAttribute('data-id');
+      if (!id) return;
+      if (!confirm('Bu soruyu silmek istediğinize emin misiniz?')) return;
+
+      try {
+        const r = await fetch(`/questions/${id}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        // satırı DOM'dan kaldır
+        const tr = btn.closest('tr');
+        if (tr) tr.remove();
+      } catch (err) {
+        alert('Silme hatası: ' + err);
+      }
+    });
 
     const catSel = document.getElementById('categorySel');
     catSel.addEventListener('change', () => {
