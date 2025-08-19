@@ -1,68 +1,156 @@
 [
   {
+    "id": 1,
     "question": "tahakkuk nedir?",
     "answer": "kısa cevap...",
     "keywords": "tahakkuk,vergi",
     "category": "tahakkuk"
   },
   {
+    "id": 2,
     "question": "tahakkuk ne demek?",
     "answer": "Tahakkuk, bir gelir veya giderin nakit hareketi olmasa da gerçekleştiği anda kayda alınmasıdır.",
     "keywords": "tahakkuk,vergi",
     "category": "tahakkuk"
   },
   {
+    "id": 3,
     "question": "Vergi tahakkuku nasıl yapılır?",
     "answer": "Beyanname sonrası vergi dairesi tarafından hesaplanarak tahakkuk fişi düzenlenir.",
     "keywords": "tahakkuk,vergi,beyanname",
     "category": "tahakkuk"
   },
   {
+    "id": 4,
     "question": "Tahsilat nedir?",
     "answer": "Kesinleşmiş bir alacağın mükelleften tahsil edilmesi sürecidir.",
     "keywords": "tahsilat,alacak,tahakkuk",
     "category": "tahsilat"
   },
   {
+    "id": 5,
     "question": "Vergi tahsilatı ne zaman yapılır?",
     "answer": "Tahakkuk eden vergi, kanunda belirtilen ödeme sürelerinde tahsil edilir.",
     "keywords": "tahsilat,vergi,ödeme",
     "category": "tahsilat"
   },
   {
+    "id": 6,
     "question": "KDV nedir?",
     "answer": "Katma Değer Vergisi, mal ve hizmet teslimlerinde alınan dolaylı vergidir.",
     "keywords": "kdv,katma değer vergisi,vergi",
     "category": "diger"
   },
   {
-    "question": "Gelir vergisi kimlerden alınır?",
-    "answer": "Gelir vergisi kimlerden alınır?",
-    "keywords": "gelir vergisi,gerçek kişi",
-    "category": "diger"
-  },
-  {
+    "id": 8,
     "question": "Kurumlar vergisi oranı nedir?",
     "answer": "Şu an %25 olarak uygulanmaktadır.",
     "keywords": "kurumlar vergisi,oran",
     "category": "diger"
   },
   {
+    "id": 9,
     "question": "Vergi cezaları nelerdir?",
     "answer": "Usulsüzlük cezası, vergi ziyaı cezası gibi türleri vardır.",
     "keywords": "ceza,vergi cezası,usulsüzlük",
     "category": "diger"
   },
   {
+    "id": 10,
     "question": "Gelir vergisi nedir?",
     "answer": "Bireylerin kazançları üzerinden alınan vergi türü.",
     "keywords": "gelir,vergi,bireysel",
     "category": "gelir"
   },
   {
+    "id": 11,
     "question": "Gelir nedir?",
     "answer": "Gelir, bir kişinin veya kurumun belli bir dönemde elde ettiği kazançtır.",
     "keywords": "gelir,kazanç,ekonomi",
+    "category": "gelir"
+  },
+  {
+    "id": 15,
+    "question": "Tahakkuk fişi nedir?",
+    "answer": "Vergi veya borcun hesaplanıp kesinleştiğini gösteren resmî belgedir.",
+    "keywords": "tahakkuk fişi,belge,kesinleşme",
+    "category": "tahakkuk"
+  },
+  {
+    "id": 16,
+    "question": "Tahakkuk ile tahsilat arasındaki fark nedir?",
+    "answer": "Tahakkuk borcun hesaplanıp kesinleşmesidir; tahsilat ise bu borcun ödenmesidir.",
+    "keywords": "tahakkuk,tahsilat,fark",
+    "category": "tahakkuk"
+  },
+  {
+    "id": 17,
+    "question": "Peşin ödeme indirimi var mı?",
+    "answer": "Bazı vergi ve cezalarda kanuna göre peşin ödeme indirimi uygulanabilir.",
+    "keywords": "peşin ödeme,indirim,ceza",
+    "category": "tahsilat"
+  },
+  {
+    "id": 18,
+    "question": "Vergi borcu taksitlendirilebilir mi?",
+    "answer": "Evet, şartları sağlayan borçlar için tecil ve taksitlendirme yapılabilir.",
+    "keywords": "taksit,tecil,ödeme planı",
+    "category": "tahsilat"
+  },
+  {
+    "id": 19,
+    "question": "Beyanname nedir?",
+    "answer": "Mükellefin vergiye tabi matrahını idareye bildirdiği resmî belgedir.",
+    "keywords": "beyanname,matrah,vergi beyanı",
+    "category": "beyan"
+  },
+  {
+    "id": 20,
+    "question": "Beyanname son gönderim tarihi nedir?",
+    "answer": "Beyan türüne göre değişir; ilgili takvim ve mevzuata göre belirlenir.",
+    "keywords": "beyanname,son tarih,teslim",
+    "category": "beyan"
+  },
+  {
+    "id": 21,
+    "question": "KDV iadesi nasıl alınır?",
+    "answer": "İade hakkı doğuran işlemler için belgelerle başvuru yapılır; şartlar sağlanırsa iade edilir.",
+    "keywords": "kdv iadesi,iade,başvuru",
+    "category": "iade"
+  },
+  {
+    "id": 22,
+    "question": "İade sürecinde sık görülen eksikler nelerdir?",
+    "answer": "Eksik belge, yanlış hesaplama ve zamanında başvurmama en yaygın sorunlardır.",
+    "keywords": "iade,eksik belge,hata",
+    "category": "iade"
+  },
+  {
+    "id": 23,
+    "question": "Muafiyet ve istisna nedir?",
+    "answer": "Muafiyet mükellefiyetten, istisna ise belirli gelir veya işlemlerden vergi alınmamasıdır.",
+    "keywords": "muafiyet,istisna,vergi",
+    "category": "diger"
+  },
+  {
+    "id": 24,
+    "question": "Vergi ziyaı cezası neyi ifade eder?",
+    "answer": "Verginin zamanında veya doğru beyan edilmemesi nedeniyle alınan cezadır.",
+    "keywords": "vergi ziyaı,ceza,usul",
+    "category": "diger"
+  },
+  {
+    "id": 25,
+    "question": "E-tebligat nedir?",
+    "answer": "Vergi dairesi bildirimlerinin elektronik ortamda mükellefe iletilmesidir.",
+    "keywords": "e-tebligat,elektronik tebligat,bildirim",
+    "category": "usul"
+  },
+  {
+    "id": 26,
+    "question": "Gelir vergisi kimlerden alınır?",
+    "answer": "Türkiye’de tam veya dar mükellef gerçek kişilerin elde ettikleri gelirlerden alınır.",
+    "keywords": "gelir vergisi,gerçek kişi,mükellef",
     "category": "gelir"
   }
 ]

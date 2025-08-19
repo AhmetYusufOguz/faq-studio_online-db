@@ -23,9 +23,29 @@
           <td>{{ r.question }}</td>
           <td>{{ r.category }}</td>
           <td>{{ r.created_at }}</td>
+          <td>
+            <button onclick="confirmDelete({{ r.id }})">Sil</button>
+          </td>
         </tr>
       {% endfor %}
     </tbody>
   </table>
 </body>
 </html>
+
+<script>
+function confirmDelete(id) {
+    if (!confirm("Bu soruyu silmek istediğinize emin misiniz?")) return;
+
+    fetch(`/questions/${id}`, { method: 'DELETE' })
+        .then(res => {
+            if (!res.ok) throw new Error("Silme hatası");
+            return res.json();
+        })
+        .then(data => {
+            alert("Soru silindi!");
+            location.reload(); // sayfayı yenile
+        })
+        .catch(err => alert(err));
+}
+</script>
