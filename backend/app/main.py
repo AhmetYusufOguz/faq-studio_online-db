@@ -176,3 +176,35 @@ def delete_question(qid: int):
     data_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     return {"ok": True, "deleted_id": qid}
+
+@app.get("/questions/search")
+def search_questions(query: str, limit: int = 50, offset: int = 0):
+    like_pattern = f"%{query}%"
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, question, answer, keywords, category, created_at
+            FROM questions
+            WHERE question ILIKE %s OR answer ILIKE %s OR keywords ILIKE %s OR category ILIKE %s
+            ORDER BY id DESC
+            LIMIT %s OFFSET %s
+        """, (like_pattern, like_pattern, like_pattern, like_pattern, limit, offset))
+        return cur.fetchall()
+    
+@app.get("/stats/categories")
+def stats_categories():
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT category, COUNT(*) AS cnt
+            FROM questions
+            GROUP BY category
+            ORDER BY cnt DESC, category
+        """)
+        return cur.fetchall()
+
+@app.get("/stats/total")
+def stats_total():
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) AS total FROM questions")
+        row = cur.fetchone()
+        return {"total": row["total"]}
+

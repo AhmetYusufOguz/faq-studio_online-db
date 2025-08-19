@@ -5,7 +5,7 @@
   <style>
     body{font-family:system-ui,Arial,sans-serif;max-width:800px;margin:24px auto;color:#eaeaea;background:#111}
     label{display:block;margin:10px 0 4px}
-    textarea,input,select{width:100%;padding:8px;box-sizing:border-box;background:#2b2b2b;border:1px solid #3a3a3a;color:#eaeaea}
+    textarea,input,select{width:100%;padding:8px;box-sizing:border-box;background:#3b3b3b;border:1px solid #3a3a3a;color:#eaeaea}
     button{margin-top:12px;padding:10px 14px;cursor:pointer;background:#2d5;border:0;color:#000}
     .warn{background:#3a2;border:1px solid #7c2;padding:10px;margin-top:10px}
     .ok{background:#163;border:1px solid #2a5;padding:10px;margin-top:10px}
@@ -16,9 +16,10 @@
   <h1>Soru Girişi</h1>
 
   <div style="margin:8px 0 18px;">
-    <label>Eşik (benzerlik): <span id="thLabel">{{ '%.2f'|format(th_default) }}</span></label>
-    <input id="th" type="range" min="0.50" max="0.90" step="0.01" value="{{ '%.2f'|format(th_default) }}" style="width:260px;">
+    <label>Eşik (benzerlik): <span id="thLabel">0.70</span></label>
+    <input id="th" type="range" min="0.50" max="0.90" step="0.01" value="0.70" style="width:260px;">
     <button type="button" id="btnRecent" style="margin-left:12px;background:#09f;color:#000;border:0;padding:8px 12px;cursor:pointer;">Son kayıtlar</button>
+    <button type="button" id="btnStats" style="margin-left:8px;background:#c07;color:#000;border:0;padding:8px 12px;cursor:pointer;">İstatistikler</button>
   </div>
 
   <form id="qform" method="post" action="/add">
@@ -31,31 +32,37 @@
     <label>Anahtar Kelimeler (virgüllerle)</label><input type="text" name="keywords" required />
     <label>Kategori</label>
     <select id="categorySel" name="category" required> 
-      {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %} 
+      <option value="">Kategori seçin...</option>
       <option value="__new__">+ Yeni kategori ekle…</option> 
     </select>
     <button type="submit">Kaydet</button>
     <div id="saveBox"></div>
   </form>
 
-  <!-- Modal -->
+  <!-- Recent Records Modal -->
   <div id="recentModal" aria-hidden="true" role="dialog" aria-labelledby="recentTitle"
        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:9999;">
     <div style="background:#111; color:#eaeaea; width:min(950px, 96%); margin:60px auto; border:1px solid #333; border-radius:8px; overflow:hidden;">
       <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid #333;">
-        <h3 id="recentTitle" style="margin:0;">Son 100 Kayıt</h3>
+        <h3 id="recentTitle" style="margin:0;">Son 100 Kayıt <span id="recentCount">()</span></h3>
         <button id="closeRecent" aria-label="Kapat" title="Kapat"
                 style="background:#222;color:#eee;border:1px solid #444;padding:6px 10px;cursor:pointer;">✕</button>
       </div>
       <div id="recentBody" style="max-height:65vh; overflow:auto;">
+        <div style="display:flex; gap:8px; align-items:center; padding:10px 14px; border-bottom:1px solid #222;">
+          <input id="recentSearch" type="text" placeholder="Ara (soru/cevap/keyword/kategori)..." 
+                style="flex:1; padding:8px; background:#222; border:1px solid #444; color:#eee;">
+          <button id="recentClear" style="background:#444;color:#eee;border:1px solid #555;padding:8px 12px;cursor:pointer;">Temizle</button>
+        </div>
         <div id="recentLoading" style="padding:14px;">Yükleniyor…</div>
         <table id="recentTable" style="width:100%; border-collapse:collapse; display:none;">
           <thead>
-            <tr data-row-id="${x.id ?? ''}">
+            <tr>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">ID</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Soru</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Kategori</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Tarih</th>
+              <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">İşlem</th>
             </tr>
           </thead>
           <tbody id="recentTbody"></tbody>
@@ -69,112 +76,116 @@
     </div>
   </div>
 
+  <!-- Stats Modal -->
+  <div id="statsModal" aria-hidden="true" role="dialog"
+      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:9999;">
+    <div style="background:#111;color:#eaeaea;width:min(950px,96%);margin:60px auto;border:1px solid #333;border-radius:8px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #333;">
+        <h3 style="margin:0;">Kategori Dağılımı</h3>
+        <button id="closeStats" style="background:#222;color:#eee;border:1px solid #444;padding:6px 10px;cursor:pointer;">✕</button>
+      </div>
+      <div style="padding:12px 14px;">
+        <canvas id="catChart" width="880" height="320"></canvas>
+        <div id="statsLegend" style="margin-top:8px;font-size:14px;color:#aaa;"></div>
+      </div>
+      <div style="padding:10px 14px;border-top:1px solid #333;display:flex;gap:8px;justify-content:flex-end;">
+        <button id="refreshStats" style="background:#2d5;color:#000;border:0;padding:8px 12px;cursor:pointer;">Yenile</button>
+        <button id="closeStats2" style="background:#222;color:#eee;border:1px solid #444;padding:8px 12px;cursor:pointer;">Kapat</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // === GLOBAL VARIABLES ===
     const form = document.getElementById('qform');
     const dupBox = document.getElementById('dupBox');
     const saveBox = document.getElementById('saveBox');
     const thInput = document.getElementById('th');
     const thLabel = document.getElementById('thLabel');
-    thInput.oninput = () => { thLabel.textContent = Number(thInput.value).toFixed(2); };
+    const catSel = document.getElementById('categorySel');
+    
+    // Recent modal elements
+    const recentModal = document.getElementById('recentModal');
+    const recentSearch = document.getElementById('recentSearch');
+    const recentClear = document.getElementById('recentClear');
+    
+    // Stats modal elements
+    const statsModal = document.getElementById('statsModal');
+    
+    // Search query state
+    let recentQuery = "";
 
+    // === UTILITY FUNCTIONS ===
+    function debounce(fn, ms = 300) {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn(...args), ms);
+      };
+    }
+
+    function safeHtml(str) {
+      return String(str ?? '').replace(/[<>]/g, ch => ({'<': '&lt;', '>': '&gt;'}[ch]));
+    }
+
+    // === THRESHOLD SLIDER ===
+    thInput.oninput = () => {
+      thLabel.textContent = Number(thInput.value).toFixed(2);
+    };
+
+    // === DUPLICATE CHECK ===
     document.getElementById('btnCheck').onclick = async () => {
       dupBox.textContent = 'Kontrol ediliyor...';
       const onlyQ = new FormData();
       onlyQ.append('question', new FormData(form).get('question'));
-      const resp = await fetch(`/check-duplicate?th=${encodeURIComponent(thInput.value)}&k=3`, { method:'POST', body: onlyQ });
-      const d = await resp.json();
-      if (d.results && d.results.length) {
-        const items = d.results.map(x => `<li>${(x.sim||0).toFixed(2)} — ${String(x.question||'').replace(/[<>]/g,ch=>({'<':'&lt;','>':'&gt;'}[ch]))}</li>`).join('');
-        if (d.duplicate) {
-          dupBox.innerHTML = `<div class="warn"><b>Benzerler (eşik ${d.threshold.toFixed(2)}):</b><ul>${items}</ul></div>`;
+      
+      try {
+        const resp = await fetch(`/check-duplicate?th=${encodeURIComponent(thInput.value)}&k=3`, { 
+          method: 'POST', 
+          body: onlyQ 
+        });
+        const d = await resp.json();
+        
+        if (d.results && d.results.length) {
+          const items = d.results.map(x => 
+            `<li>${(x.sim || 0).toFixed(2)} — ${safeHtml(x.question)}</li>`
+          ).join('');
+          
+          if (d.duplicate) {
+            dupBox.innerHTML = `<div class="warn"><b>Benzerler (eşik ${d.threshold.toFixed(2)}):</b><ul>${items}</ul></div>`;
+          } else {
+            dupBox.innerHTML = `<div class="ok">Benzer yok (eşik ${d.threshold.toFixed(2)}).<ul>${items}</ul></div>`;
+          }
         } else {
-          dupBox.innerHTML = `<div class="ok">Benzer yok (eşik ${d.threshold.toFixed(2)}).<ul>${items}</ul></div>`;
+          dupBox.innerHTML = `<div class="ok">Kayıt bulunamadı.</div>`;
         }
-      } else {
-        dupBox.innerHTML = `<div class="ok">Kayıt bulunamadı.</div>`;
+      } catch (error) {
+        dupBox.innerHTML = `<div class="warn">Kontrol hatası: ${error.message}</div>`;
       }
     };
 
+    // === FORM SUBMISSION ===
     form.onsubmit = async (e) => {
       e.preventDefault();
       saveBox.textContent = 'Kaydediliyor...';
-      const resp = await fetch('/add', { method:'POST', body: new FormData(form) });
-      const d = await resp.json();
-      if (d.ok) {
-        saveBox.innerHTML = '<div class="ok">Kaydedildi (JSON + DB) ✅</div>';
-        form.reset(); dupBox.innerHTML='';
-      } else {
-        saveBox.innerHTML = '<div class="warn">Kaydedilemedi.</div>';
+      
+      try {
+        const resp = await fetch('/add', { method: 'POST', body: new FormData(form) });
+        const d = await resp.json();
+        
+        if (d.ok) {
+          saveBox.innerHTML = '<div class="ok">Kaydedildi (JSON + DB) ✅</div>';
+          form.reset();
+          dupBox.innerHTML = '';
+        } else {
+          saveBox.innerHTML = '<div class="warn">Kaydedilemedi.</div>';
+        }
+      } catch (error) {
+        saveBox.innerHTML = `<div class="warn">Kaydetme hatası: ${error.message}</div>`;
       }
     };
 
-    // --- Modal helpers ---
-    const modal = document.getElementById('recentModal');
-    const openRecent = () => { modal.style.display = 'block'; modal.setAttribute('aria-hidden','false'); };
-    const closeRecent = () => { modal.style.display = 'none'; modal.setAttribute('aria-hidden','true'); };
-    document.getElementById('closeRecent').onclick = closeRecent;
-    document.getElementById('closeRecent2').onclick = closeRecent;
-    modal.addEventListener('click', (e)=>{ if(e.target === modal) closeRecent(); }); // backdrop click
-
-    async function loadRecent(){
-      const loading = document.getElementById('recentLoading');
-      const table = document.getElementById('recentTable');
-      const tbody = document.getElementById('recentTbody');
-      const err = document.getElementById('recentError');
-      loading.style.display = 'block';
-      table.style.display = 'none';
-      err.style.display = 'none';
-      tbody.innerHTML = '';
-      try{
-        const r = await fetch('/questions?limit=100&offset=0');
-        if(!r.ok) throw new Error('HTTP '+r.status);
-        const rows = await r.json();
-        if(!Array.isArray(rows) || rows.length===0){
-          tbody.innerHTML = '<tr><td colspan="4" style="padding:8px;color:#aaa;">Kayıt bulunamadı.</td></tr>';
-        }else{
-          const safe = (s)=> String(s ?? '').replace(/[<>]/g, ch => ({'<':'&lt;','>':'&gt;'}[ch]));
-          for(const x of rows){
-            tbody.insertAdjacentHTML('beforeend',
-              `<tr data-row-id="${x.id ?? ''}">
-                 <td style="border-bottom:1px solid #222;padding:8px;">${x.id ?? ''}</td>
-                 <td style="border-bottom:1px solid #222;padding:8px;">${safe(x.question)}</td>
-                 <td style="border-bottom:1px solid #222;padding:8px;">${safe(x.category)}</td>
-                 <td style="border-bottom:1px solid #222;padding:8px;">${safe(x.created_at)}</td>
-                 <td style="border-bottom:1px solid #222;padding:8px;">
-                    <button class="btn-del" data-id="${x.id ?? ''}" style="background:#933;color:#fff;border:0;padding:6px 10px;cursor:pointer;">Sil</button>
-                  </td>
-               </tr>`);
-          }
-        }
-        table.style.display = 'table';
-      }catch(e){
-        err.textContent = 'Hata: ' + e;
-        err.style.display = 'block';
-      }finally{
-        loading.style.display = 'none';
-      }
-    }
-    document.getElementById('btnRecent').onclick = async ()=>{ openRecent(); await loadRecent(); };
-    document.getElementById('refreshRecent').onclick = loadRecent;
-    document.getElementById('recentTbody').addEventListener('click', async (e) => {
-      const btn = e.target.closest('.btn-del');
-      if (!btn) return;
-      const id = btn.getAttribute('data-id');
-      if (!id) return;
-      if (!confirm('Bu soruyu silmek istediğinize emin misiniz?')) return;
-
-      try {
-        const r = await fetch(`/questions/${id}`, { method: 'DELETE' });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        // satırı DOM'dan kaldır
-        const tr = btn.closest('tr');
-        if (tr) tr.remove();
-      } catch (err) {
-        alert('Silme hatası: ' + err);
-      }
-    });
-
-    const catSel = document.getElementById('categorySel');
+    // === CATEGORY SELECTION ===
     catSel.addEventListener('change', () => {
       if (catSel.value === '__new__') {
         const yeni = prompt('Yeni kategori adı:');
@@ -182,12 +193,242 @@
           const opt = document.createElement('option');
           opt.value = yeni.trim();
           opt.textContent = yeni.trim();
-          catSel.insertBefore(opt, catSel.lastElementChild); // "Yeni ekle" seçeneğinin üstüne koy
-          catSel.value = yeni.trim(); // otomatik seç
+          catSel.insertBefore(opt, catSel.lastElementChild);
+          catSel.value = yeni.trim();
         } else {
-          catSel.value = ''; // boşsa sıfırla
+          catSel.value = '';
         }
       }
+    });
+
+    // === RECENT MODAL FUNCTIONS ===
+    function openRecentModal() {
+      recentModal.style.display = 'block';
+      recentModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeRecentModal() {
+      recentModal.style.display = 'none';
+      recentModal.setAttribute('aria-hidden', 'true');
+    }
+
+    async function loadRecentRecords() {
+      const countSpan = document.getElementById('recentCount');
+      const loading = document.getElementById('recentLoading');
+      const table = document.getElementById('recentTable');
+      const tbody = document.getElementById('recentTbody');
+      const errorDiv = document.getElementById('recentError');
+
+      // Reset UI state
+      loading.style.display = 'block';
+      table.style.display = 'none';
+      errorDiv.style.display = 'none';
+      tbody.innerHTML = '';
+
+      try {
+        // Determine URL based on search query
+        const url = recentQuery
+          ? `/questions/search?query=${encodeURIComponent(recentQuery)}&limit=100`
+          : `/questions?limit=100&offset=0`;
+
+        // Fetch data and total count
+        const [dataResponse, totalResponse] = await Promise.all([
+          fetch(url),
+          fetch('/stats/total')
+        ]);
+
+        if (!dataResponse.ok) throw new Error('HTTP ' + dataResponse.status);
+
+        const rows = await dataResponse.json();
+        const total = totalResponse.ok ? (await totalResponse.json()).total : null;
+
+        // Update count display
+        if (countSpan) {
+          countSpan.textContent = total !== null ? `(${total})` : '';
+        }
+
+        // Populate table
+        if (!Array.isArray(rows) || rows.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="padding:8px;color:#aaa;">Kayıt bulunamadı.</td></tr>';
+        } else {
+          for (const record of rows) {
+            tbody.insertAdjacentHTML('beforeend',
+              `<tr data-row-id="${record.id ?? ''}">
+                 <td style="border-bottom:1px solid #222;padding:8px;">${record.id ?? ''}</td>
+                 <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.question)}</td>
+                 <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.category)}</td>
+                 <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.created_at)}</td>
+                 <td style="border-bottom:1px solid #222;padding:8px;">
+                    <button class="btn-del" data-id="${record.id ?? ''}" style="background:#933;color:#fff;border:0;padding:6px 10px;cursor:pointer;">Sil</button>
+                  </td>
+               </tr>`);
+          }
+        }
+
+        table.style.display = 'table';
+      } catch (error) {
+        errorDiv.textContent = 'Hata: ' + error.message;
+        errorDiv.style.display = 'block';
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    // === STATS MODAL FUNCTIONS ===
+    function openStatsModal() {
+      statsModal.style.display = 'block';
+      statsModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeStatsModal() {
+      statsModal.style.display = 'none';
+      statsModal.setAttribute('aria-hidden', 'true');
+    }
+
+    async function loadStatsData() {
+      try {
+        const response = await fetch('/stats/categories');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        
+        const rows = await response.json();
+        
+        // Normalize data structure
+        const data = rows.map(x => ({
+          category: x.category ?? x['category'],
+          cnt: Number(x.cnt ?? x['cnt'] ?? 0)
+        }));
+
+        // Draw chart
+        drawCategoryChart(data);
+        
+        // Update legend
+        const legend = document.getElementById('statsLegend');
+        legend.textContent = data.length 
+          ? data.map(d => `${d.category}: ${d.cnt}`).join(' • ') 
+          : 'Kayıt yok';
+          
+      } catch (error) {
+        alert('İstatistik hatası: ' + error.message);
+      }
+    }
+
+    function drawCategoryChart(data) {
+      const canvas = document.getElementById('catChart');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(0, 0, W, H);
+
+      if (!data.length) return;
+
+      const padding = 40;
+      const barGap = 14;
+      const maxCnt = Math.max(1, ...data.map(d => d.cnt));
+      const barW = Math.max(10, (W - padding * 2 - barGap * (data.length - 1)) / Math.max(1, data.length));
+
+      // Draw axes
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padding, padding);
+      ctx.lineTo(padding, H - padding);
+      ctx.lineTo(W - padding, H - padding);
+      ctx.stroke();
+
+      // Draw bars
+      ctx.fillStyle = '#4ea';
+      data.forEach((d, i) => {
+        const x = padding + i * (barW + barGap);
+        const barHeight = Math.round((H - padding * 2) * (d.cnt / maxCnt));
+        const y = (H - padding) - barHeight;
+        ctx.fillRect(x, y, barW, barHeight);
+      });
+
+      // Draw count labels on bars
+      ctx.fillStyle = '#aaa';
+      ctx.font = '12px system-ui, Arial';
+      ctx.textAlign = 'center';
+      data.forEach((d, i) => {
+        const x = padding + i * (barW + barGap);
+        const barHeight = Math.round((H - padding * 2) * (d.cnt / maxCnt));
+        const y = (H - padding) - barHeight;
+        ctx.fillText(String(d.cnt), x + barW / 2, y - 6);
+      });
+
+      // Draw category labels
+      data.forEach((d, i) => {
+        const x = padding + i * (barW + barGap);
+        ctx.fillText(String(d.category), x + barW / 2, H - padding + 16);
+      });
+    }
+
+    // === EVENT LISTENERS ===
+
+    // Recent modal events
+    document.getElementById('btnRecent').onclick = async () => {
+      openRecentModal();
+      await loadRecentRecords();
+    };
+
+    document.getElementById('closeRecent').onclick = closeRecentModal;
+    document.getElementById('closeRecent2').onclick = closeRecentModal;
+    document.getElementById('refreshRecent').onclick = loadRecentRecords;
+
+    // Recent modal backdrop click
+    recentModal.addEventListener('click', (e) => {
+      if (e.target === recentModal) closeRecentModal();
+    });
+
+    // Search functionality
+    recentSearch.addEventListener('input', debounce(() => {
+      recentQuery = recentSearch.value.trim();
+      loadRecentRecords();
+    }, 300));
+
+    recentClear.onclick = () => {
+      recentSearch.value = '';
+      recentQuery = '';
+      loadRecentRecords();
+    };
+
+    // Delete functionality (event delegation)
+    document.getElementById('recentTbody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('.btn-del');
+      if (!btn) return;
+      
+      const id = btn.getAttribute('data-id');
+      if (!id) return;
+      
+      if (!confirm('Bu soruyu silmek istediğinize emin misiniz?')) return;
+
+      try {
+        const response = await fetch(`/questions/${id}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        
+        const tr = btn.closest('tr');
+        if (tr) tr.remove();
+      } catch (error) {
+        alert('Silme hatası: ' + error.message);
+      }
+    });
+
+    // Stats modal events
+    document.getElementById('btnStats').onclick = async () => {
+      openStatsModal();
+      await loadStatsData();
+    };
+
+    document.getElementById('closeStats').onclick = closeStatsModal;
+    document.getElementById('closeStats2').onclick = closeStatsModal;
+    document.getElementById('refreshStats').onclick = loadStatsData;
+
+    // Stats modal backdrop click
+    statsModal.addEventListener('click', (e) => {
+      if (e.target === statsModal) closeStatsModal();
     });
   </script>
 </body>
