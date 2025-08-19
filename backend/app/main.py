@@ -6,6 +6,18 @@ from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 from .db import get_conn, init_db
 
+# Docker Compose ile çalıştırma:
+# docker compose build api
+# docker compose up -d --force-recreate api
+# Logları görmek    :   docker logs -f ai_faq_api
+
+# Durum kontrolü    :   docer ps
+# Durdurma          :   docker compose down
+# Başlatma          :   docker compose up -d
+
+# PostgreSQL'e bakma:   docker exec -it ai_faq_db psql -U faq -d faqdb
+# Soruları listeleme:   SELECT id, question, category, created_at FROM questions ORDER BY id DESC LIMIT 10;
+
 load_dotenv()
 app = FastAPI(title="FAQ Studio")
 TPL_DIR = pathlib.Path(__file__).parent / "templates"
@@ -40,9 +52,16 @@ def embed(text: str):
     r.raise_for_status()
     return np.array(r.json().get("embedding"), dtype=np.float32)
 
+def ensure_categories_file():
+    p = pathlib.Path(CATEGORIES_PATH)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    if not p.exists():
+        p.write_text(json.dumps(["tahakkuk","tahsilat","diger"], ensure_ascii=False, indent=2), encoding="utf-8")
+
 @app.on_event("startup")
 def startup():
     ensure_json_file()
+    ensure_categories_file()
     init_db()
 
 @app.get("/", response_class=HTMLResponse)
@@ -94,6 +113,12 @@ def add_item(
     data = json.loads(raw)
     data.append({"question": question, "answer": answer, "keywords": keywords, "category": category})
     pathlib.Path(JSON_PATH).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # Update categories.json
+    cats = json.loads(pathlib.Path(CATEGORIES_PATH).read_text(encoding="utf-8"))
+    if category not in cats:
+        cats.append(category)
+        pathlib.Path(CATEGORIES_PATH).write_text(json.dumps(cats, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # Insert into DB
     with get_conn() as conn, conn.cursor() as cur:

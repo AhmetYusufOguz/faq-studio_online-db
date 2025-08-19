@@ -52,5 +52,17 @@
     "answer": "Usulsüzlük cezası, vergi ziyaı cezası gibi türleri vardır.",
     "keywords": "ceza,vergi cezası,usulsüzlük",
     "category": "diger"
+  },
+  {
+    "question": "Gelir vergisi nedir?",
+    "answer": "Bireylerin kazançları üzerinden alınan vergi türü.",
+    "keywords": "gelir,vergi,bireysel",
+    "category": "gelir"
+  },
+  {
+    "question": "Gelir nedir?",
+    "answer": "Gelir, bir kişinin veya kurumun belli bir dönemde elde ettiği kazançtır.",
+    "keywords": "gelir,kazanç,ekonomi",
+    "category": "gelir"
   }
 ]

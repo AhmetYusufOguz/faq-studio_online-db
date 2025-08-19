@@ -6,9 +6,9 @@
     body{font-family:system-ui,Arial,sans-serif;max-width:800px;margin:24px auto;color:#eaeaea;background:#111}
     label{display:block;margin:10px 0 4px}
     textarea,input,select{width:100%;padding:8px;box-sizing:border-box;background:#2b2b2b;border:1px solid #3a3a3a;color:#eaeaea}
-    button{margin-top:12px;padding:10px 14px;cursor:pointer;background:#2d5; border:0;color:#000}
-    .warn{background:#3a2; border:1px solid #7c2; padding:10px; margin-top:10px}
-    .ok{background:#163; border:1px solid #2a5; padding:10px; margin-top:10px}
+    button{margin-top:12px;padding:10px 14px;cursor:pointer;background:#2d5;border:0;color:#000}
+    .warn{background:#3a2;border:1px solid #7c2;padding:10px;margin-top:10px}
+    .ok{background:#163;border:1px solid #2a5;padding:10px;margin-top:10px}
     a{color:#7cc}
   </style>
 </head>
@@ -18,7 +18,7 @@
   <div style="margin:8px 0 18px;">
     <label>Eşik (benzerlik): <span id="thLabel">{{ '%.2f'|format(th_default) }}</span></label>
     <input id="th" type="range" min="0.50" max="0.90" step="0.01" value="{{ '%.2f'|format(th_default) }}" style="width:260px;">
-    <a href="/questions-table" target="_blank" style="margin-left:12px;">Son kayıtlar</a>
+    <button type="button" id="btnRecent" style="margin-left:12px;background:#09f;color:#000;border:0;padding:8px 12px;cursor:pointer;">Son kayıtlar</button>
   </div>
 
   <form id="qform" method="post" action="/add">
@@ -30,12 +30,44 @@
     <label>Cevap</label><textarea name="answer" rows="3" required></textarea>
     <label>Anahtar Kelimeler (virgüllerle)</label><input type="text" name="keywords" required />
     <label>Kategori</label>
-    <select name="category" required>
-      {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+    <select id="categorySel" name="category" required> 
+      {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %} 
+      <option value="__new__">+ Yeni kategori ekle…</option> 
     </select>
     <button type="submit">Kaydet</button>
     <div id="saveBox"></div>
   </form>
+
+  <!-- Modal -->
+  <div id="recentModal" aria-hidden="true" role="dialog" aria-labelledby="recentTitle"
+       style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:9999;">
+    <div style="background:#111; color:#eaeaea; width:min(950px, 96%); margin:60px auto; border:1px solid #333; border-radius:8px; overflow:hidden;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid #333;">
+        <h3 id="recentTitle" style="margin:0;">Son 100 Kayıt</h3>
+        <button id="closeRecent" aria-label="Kapat" title="Kapat"
+                style="background:#222;color:#eee;border:1px solid #444;padding:6px 10px;cursor:pointer;">✕</button>
+      </div>
+      <div id="recentBody" style="max-height:65vh; overflow:auto;">
+        <div id="recentLoading" style="padding:14px;">Yükleniyor…</div>
+        <table id="recentTable" style="width:100%; border-collapse:collapse; display:none;">
+          <thead>
+            <tr>
+              <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">ID</th>
+              <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Soru</th>
+              <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Kategori</th>
+              <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Tarih</th>
+            </tr>
+          </thead>
+          <tbody id="recentTbody"></tbody>
+        </table>
+        <div id="recentError" style="display:none; padding:14px; background:#2b1d1d; border-top:1px solid #533;">Hata oluştu.</div>
+      </div>
+      <div style="padding:10px 14px; border-top:1px solid #333; display:flex; gap:8px; justify-content:flex-end;">
+        <button id="refreshRecent" style="background:#2d5;color:#000;border:0;padding:8px 12px;cursor:pointer;">Yenile</button>
+        <button id="closeRecent2" style="background:#222;color:#eee;border:1px solid #444;padding:8px 12px;cursor:pointer;">Kapat</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const form = document.getElementById('qform');
@@ -52,7 +84,7 @@
       const resp = await fetch(`/check-duplicate?th=${encodeURIComponent(thInput.value)}&k=3`, { method:'POST', body: onlyQ });
       const d = await resp.json();
       if (d.results && d.results.length) {
-        const items = d.results.map(x => `<li>${(x.sim||0).toFixed(2)} — ${x.question}</li>`).join('');
+        const items = d.results.map(x => `<li>${(x.sim||0).toFixed(2)} — ${String(x.question||'').replace(/[<>]/g,ch=>({'<':'&lt;','>':'&gt;'}[ch]))}</li>`).join('');
         if (d.duplicate) {
           dupBox.innerHTML = `<div class="warn"><b>Benzerler (eşik ${d.threshold.toFixed(2)}):</b><ul>${items}</ul></div>`;
         } else {
@@ -75,6 +107,68 @@
         saveBox.innerHTML = '<div class="warn">Kaydedilemedi.</div>';
       }
     };
+
+    // --- Modal helpers ---
+    const modal = document.getElementById('recentModal');
+    const openRecent = () => { modal.style.display = 'block'; modal.setAttribute('aria-hidden','false'); };
+    const closeRecent = () => { modal.style.display = 'none'; modal.setAttribute('aria-hidden','true'); };
+    document.getElementById('closeRecent').onclick = closeRecent;
+    document.getElementById('closeRecent2').onclick = closeRecent;
+    modal.addEventListener('click', (e)=>{ if(e.target === modal) closeRecent(); }); // backdrop click
+
+    async function loadRecent(){
+      const loading = document.getElementById('recentLoading');
+      const table = document.getElementById('recentTable');
+      const tbody = document.getElementById('recentTbody');
+      const err = document.getElementById('recentError');
+      loading.style.display = 'block';
+      table.style.display = 'none';
+      err.style.display = 'none';
+      tbody.innerHTML = '';
+      try{
+        const r = await fetch('/questions?limit=100&offset=0');
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const rows = await r.json();
+        if(!Array.isArray(rows) || rows.length===0){
+          tbody.innerHTML = '<tr><td colspan="4" style="padding:8px;color:#aaa;">Kayıt bulunamadı.</td></tr>';
+        }else{
+          const safe = (s)=> String(s ?? '').replace(/[<>]/g, ch => ({'<':'&lt;','>':'&gt;'}[ch]));
+          for(const x of rows){
+            tbody.insertAdjacentHTML('beforeend',
+              `<tr>
+                 <td style="border-bottom:1px solid #222;padding:8px;">${x.id ?? ''}</td>
+                 <td style="border-bottom:1px solid #222;padding:8px;">${safe(x.question)}</td>
+                 <td style="border-bottom:1px solid #222;padding:8px;">${safe(x.category)}</td>
+                 <td style="border-bottom:1px solid #222;padding:8px;">${safe(x.created_at)}</td>
+               </tr>`);
+          }
+        }
+        table.style.display = 'table';
+      }catch(e){
+        err.textContent = 'Hata: ' + e;
+        err.style.display = 'block';
+      }finally{
+        loading.style.display = 'none';
+      }
+    }
+    document.getElementById('btnRecent').onclick = async ()=>{ openRecent(); await loadRecent(); };
+    document.getElementById('refreshRecent').onclick = loadRecent;
+
+    const catSel = document.getElementById('categorySel');
+    catSel.addEventListener('change', () => {
+      if (catSel.value === '__new__') {
+        const yeni = prompt('Yeni kategori adı:');
+        if (yeni && yeni.trim()) {
+          const opt = document.createElement('option');
+          opt.value = yeni.trim();
+          opt.textContent = yeni.trim();
+          catSel.insertBefore(opt, catSel.lastElementChild); // "Yeni ekle" seçeneğinin üstüne koy
+          catSel.value = yeni.trim(); // otomatik seç
+        } else {
+          catSel.value = ''; // boşsa sıfırla
+        }
+      }
+    });
   </script>
 </body>
 </html>
