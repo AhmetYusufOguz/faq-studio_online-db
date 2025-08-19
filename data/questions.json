@@ -10,5 +10,47 @@
     "answer": "Tahakkuk, bir gelir veya giderin nakit hareketi olmasa da gerçekleştiği anda kayda alınmasıdır.",
     "keywords": "tahakkuk,vergi",
     "category": "tahakkuk"
+  },
+  {
+    "question": "Vergi tahakkuku nasıl yapılır?",
+    "answer": "Beyanname sonrası vergi dairesi tarafından hesaplanarak tahakkuk fişi düzenlenir.",
+    "keywords": "tahakkuk,vergi,beyanname",
+    "category": "tahakkuk"
+  },
+  {
+    "question": "Tahsilat nedir?",
+    "answer": "Kesinleşmiş bir alacağın mükelleften tahsil edilmesi sürecidir.",
+    "keywords": "tahsilat,alacak,tahakkuk",
+    "category": "tahsilat"
+  },
+  {
+    "question": "Vergi tahsilatı ne zaman yapılır?",
+    "answer": "Tahakkuk eden vergi, kanunda belirtilen ödeme sürelerinde tahsil edilir.",
+    "keywords": "tahsilat,vergi,ödeme",
+    "category": "tahsilat"
+  },
+  {
+    "question": "KDV nedir?",
+    "answer": "Katma Değer Vergisi, mal ve hizmet teslimlerinde alınan dolaylı vergidir.",
+    "keywords": "kdv,katma değer vergisi,vergi",
+    "category": "diger"
+  },
+  {
+    "question": "Gelir vergisi kimlerden alınır?",
+    "answer": "Gelir vergisi kimlerden alınır?",
+    "keywords": "gelir vergisi,gerçek kişi",
+    "category": "diger"
+  },
+  {
+    "question": "Kurumlar vergisi oranı nedir?",
+    "answer": "Şu an %25 olarak uygulanmaktadır.",
+    "keywords": "kurumlar vergisi,oran",
+    "category": "diger"
+  },
+  {
+    "question": "Vergi cezaları nelerdir?",
+    "answer": "Usulsüzlük cezası, vergi ziyaı cezası gibi türleri vardır.",
+    "keywords": "ceza,vergi cezası,usulsüzlük",
+    "category": "diger"
   }
 ]

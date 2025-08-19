@@ -1,5 +1,6 @@
 ﻿import os, json, pathlib, numpy as np, requests
-from fastapi import FastAPI, Request, Form
+from typing import Optional
+from fastapi import FastAPI, Request, Form, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
@@ -7,11 +8,22 @@ from .db import get_conn, init_db
 
 load_dotenv()
 app = FastAPI(title="FAQ Studio")
-templates = Jinja2Templates(directory=str(pathlib.Path(__file__).parent / "templates"))
+TPL_DIR = pathlib.Path(__file__).parent / "templates"
+templates = Jinja2Templates(directory=str(TPL_DIR))
+
 EMBED_MODEL = os.getenv("EMBED_MODEL","bge-m3")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL","http://ollama:11434")
-SIM_THRESHOLD = float(os.getenv("SIM_THRESHOLD","0.70"))
+SIM_THRESHOLD = float(os.getenv("SIM_THRESHOLD","0.85"))
 JSON_PATH = os.getenv("JSON_PATH","/app/data/questions.json")
+CATEGORIES_PATH = "/app/data/categories.json"
+
+def load_categories():
+    p = pathlib.Path(CATEGORIES_PATH)
+    if p.exists():
+        raw = p.read_text(encoding="utf-8-sig").strip()
+        if raw:
+            return json.loads(raw)
+    return ["tahakkuk","tahsilat","diger"]
 
 def ensure_json_file():
     p = pathlib.Path(JSON_PATH)
@@ -23,7 +35,7 @@ def embed(text: str):
     r = requests.post(
         f"{OLLAMA_BASE_URL}/api/embeddings",
         json={"model": EMBED_MODEL, "prompt": text},
-        timeout=20  # kısa tut ki takılırsa çabuk dönsün
+        timeout=20
     )
     r.raise_for_status()
     return np.array(r.json().get("embedding"), dtype=np.float32)
@@ -35,39 +47,47 @@ def startup():
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request,
-                                                    "categories": ["tahakkuk","tahsilat","diger"]})
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request, "categories": load_categories(), "th_default": SIM_THRESHOLD}
+    )
 
 @app.post("/check-duplicate")
-def check_duplicate(question: str = Form(...)):
+def check_duplicate(
+    request: Request,
+    question: str = Form(...),
+    th: Optional[float] = Query(None),
+    k: int = Query(3, ge=1, le=10),
+):
     q = embed(question)
     vec_str = "[" + ",".join(f"{x:.6f}" for x in q.tolist()) + "]"
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(
             "SELECT id, question, answer, keywords, category, "
             "       1 - (embedding <=> %s::vector) AS sim "
-            "FROM questions ORDER BY embedding <=> %s::vector ASC LIMIT 1",
-            (vec_str, vec_str)
+            "FROM questions "
+            "ORDER BY embedding <=> %s::vector ASC LIMIT %s",
+            (vec_str, vec_str, k)
         )
-        row = cur.fetchone()
-    if not row: return {"duplicate": False}
-    sim = float(row["sim"])
-    # short queries are noisy → require a bit higher sim
-    if len(question.split()) < 4 and sim >= (SIM_THRESHOLD + 0.05):
-        is_dup = True
-    else:
-        is_dup = sim >= SIM_THRESHOLD
-    return {"duplicate": is_dup, "similarity": sim, "match": row}
+        rows = cur.fetchall()
+    if not rows:
+        return {"duplicate": False, "results": []}
+    threshold = float(th) if th is not None else SIM_THRESHOLD
+    dup = any(float(r["sim"]) >= threshold for r in rows)
+    return {"duplicate": dup, "threshold": threshold,
+            "results": [{"id": r["id"], "question": r["question"], "sim": float(r["sim"])} for r in rows]}
 
 @app.post("/add")
-def add_item(question: str = Form(...), answer: str = Form(...),
-            keywords: str = Form(...), category: str = Form(...)):
+def add_item(
+    question: str = Form(...),
+    answer: str = Form(...),
+    keywords: str = Form(...),
+    category: str = Form(...)
+):
     vec = embed(question)
     vec_str = "[" + ",".join(f"{x:.6f}" for x in vec.tolist()) + "]"
 
-    # JSON append
-    # data = json.loads(pathlib.Path(JSON_PATH).read_text(encoding="utf-8"))
-    # read with 'utf-8-sig' so BOM (if any) is ignored
+    # Append to JSON (tolerate BOM / empty)
     raw = pathlib.Path(JSON_PATH).read_text(encoding="utf-8-sig")
     if not raw.strip():
         raw = "[]"
@@ -75,7 +95,7 @@ def add_item(question: str = Form(...), answer: str = Form(...),
     data.append({"question": question, "answer": answer, "keywords": keywords, "category": category})
     pathlib.Path(JSON_PATH).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    # DB insert
+    # Insert into DB
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(
             "INSERT INTO questions (question, answer, keywords, category, embedding) "
@@ -88,6 +108,18 @@ def add_item(question: str = Form(...), answer: str = Form(...),
 @app.get("/questions")
 def list_questions(limit: int = 50, offset: int = 0):
     with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("SELECT id, question, answer, keywords, category, created_at FROM questions ORDER BY id DESC LIMIT %s OFFSET %s",
-                    (limit, offset))
+        cur.execute(
+            "SELECT id, question, answer, keywords, category, created_at "
+            "FROM questions ORDER BY id DESC LIMIT %s OFFSET %s",
+            (limit, offset)
+        )
         return cur.fetchall()
+
+@app.get("/questions-table", response_class=HTMLResponse)
+def questions_table(request: Request):
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, question, category, created_at FROM questions ORDER BY id DESC LIMIT 100"
+        )
+        rows = cur.fetchall()
+    return templates.TemplateResponse("questions.html", {"request": request, "rows": rows})
