@@ -2,13 +2,17 @@ import json
 import pathlib
 import os
 from typing import List, Dict, Any
+from pathlib import Path
+from app.logger import logger
+from app.config import settings
 
+JSON_PATH = Path(settings.JSON_PATH)
 
 class JSONFileManager:
     """JSON dosya işlemlerini yöneten sınıf"""
     
     def __init__(self):
-        self.json_path = os.getenv("JSON_PATH", "/app/data/questions.json")
+        self.json_path = settings.JSON_PATH
         self.file_path = pathlib.Path(self.json_path)
     
     def ensure_file_exists(self):
@@ -16,6 +20,7 @@ class JSONFileManager:
         self.file_path.parent.mkdir(parents=True, exist_ok=True)
         if not self.file_path.exists():
             self.file_path.write_text("[]", encoding="utf-8")
+            logger.debug("JSON file created: %s", self.file_path)
     
     def read_data(self) -> List[Dict[str, Any]]:
         """JSON dosyasını okur ve Python listesi döndürür"""
@@ -23,8 +28,11 @@ class JSONFileManager:
             raw = self.file_path.read_text(encoding="utf-8-sig")
             if not raw.strip():
                 return []
-            return json.loads(raw)
-        except (json.JSONDecodeError, FileNotFoundError):
+            data = json.loads(raw)
+            logger.debug("JSON read: %s items from %s", len(data), self.file_path)
+            return data
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            logger.debug("JSON read error: %s - %s", type(e).__name__, str(e))
             return []
     
     def write_data(self, data: List[Dict[str, Any]]):
@@ -33,12 +41,17 @@ class JSONFileManager:
             json.dumps(data, ensure_ascii=False, indent=2), 
             encoding="utf-8"
         )
+        logger.debug("JSON written: %s items to %s", len(data), self.file_path)
     
     def append_question(self, question_data: Dict[str, Any]):
         """Yeni bir soru ekler"""
         data = self.read_data()
         data.append(question_data)
         self.write_data(data)
+        logger.info(
+            "JSON appended id=%s path=%s (total: %s items)", 
+            question_data.get("id"), self.file_path, len(data)
+        )
     
     def remove_question_by_id(self, question_id: int) -> bool:
         """ID'ye göre soru siler, başarılıysa True döndürür"""
@@ -48,7 +61,13 @@ class JSONFileManager:
         
         if len(data) < original_length:
             self.write_data(data)
+            logger.info(
+                "JSON removed id=%s path=%s (diff=%s, total: %s items)", 
+                question_id, self.file_path, original_length - len(data), len(data)
+            )
             return True
+        
+        logger.debug("JSON remove failed: id=%s not found", question_id)
         return False
     
     def update_question(self, question_id: int, updated_data: Dict[str, Any]) -> bool:
@@ -58,7 +77,13 @@ class JSONFileManager:
             if item.get("id") == question_id:
                 data[i].update(updated_data)
                 self.write_data(data)
+                logger.info(
+                    "JSON updated id=%s path=%s", 
+                    question_id, self.file_path
+                )
                 return True
+        
+        logger.debug("JSON update failed: id=%s not found", question_id)
         return False
 
 
