@@ -1,11 +1,15 @@
-﻿import os, json, pathlib, numpy as np, requests
-from typing import Optional
-from fastapi import FastAPI, Request, Form, Query
-from fastapi.responses import HTMLResponse, JSONResponse
+﻿import os
+import pathlib
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
-from .db import get_conn, init_db
-from fastapi import HTTPException
+
+# Local imports
+from .db import init_db
+from .utils.json_io import ensure_json_file
+from .utils.categories import ensure_categories_file, load_categories
+from .routes import questions, stats
 
 # Docker Compose ile çalıştırma:
 # docker compose build api
@@ -19,197 +23,53 @@ from fastapi import HTTPException
 # PostgreSQL'e bakma:   docker exec -it ai_faq_db psql -U faq -d faqdb
 # Soruları listeleme:   SELECT id, question, category, created_at FROM questions ORDER BY id DESC;
 
+# Load environment variables
 load_dotenv()
+
+# FastAPI app initialization
 app = FastAPI(title="FAQ Studio")
+
+# Template setup
 TPL_DIR = pathlib.Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TPL_DIR))
 
-EMBED_MODEL = os.getenv("EMBED_MODEL","bge-m3")
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL","http://ollama:11434")
-SIM_THRESHOLD = float(os.getenv("SIM_THRESHOLD","0.85"))
-JSON_PATH = os.getenv("JSON_PATH","/app/data/questions.json")
-CATEGORIES_PATH = "/app/data/categories.json"
+# Environment variables
+SIM_THRESHOLD = float(os.getenv("SIM_THRESHOLD", "0.85"))
 
-def load_categories():
-    p = pathlib.Path(CATEGORIES_PATH)
-    if p.exists():
-        raw = p.read_text(encoding="utf-8-sig").strip()
-        if raw:
-            return json.loads(raw)
-    return ["tahakkuk","tahsilat","diger"]
-
-def ensure_json_file():
-    p = pathlib.Path(JSON_PATH)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    if not p.exists():
-        p.write_text("[]", encoding="utf-8")
-
-def embed(text: str):
-    r = requests.post(
-        f"{OLLAMA_BASE_URL}/api/embeddings",
-        json={"model": EMBED_MODEL, "prompt": text},
-        timeout=20
-    )
-    r.raise_for_status()
-    return np.array(r.json().get("embedding"), dtype=np.float32)
-
-def ensure_categories_file():
-    p = pathlib.Path(CATEGORIES_PATH)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    if not p.exists():
-        p.write_text(json.dumps(["tahakkuk","tahsilat","diger"], ensure_ascii=False, indent=2), encoding="utf-8")
 
 @app.on_event("startup")
 def startup():
+    """Uygulama başlatma işlemleri"""
     ensure_json_file()
     ensure_categories_file()
     init_db()
 
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
+    """Ana sayfa"""
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "categories": load_categories(), "th_default": SIM_THRESHOLD}
+        {
+            "request": request, 
+            "categories": load_categories(), 
+            "th_default": SIM_THRESHOLD
+        }
     )
 
-# YENİ ENDPOINT: Kategorileri JSON olarak döndür
-@app.get("/categories.json")
-def get_categories():
-    """Kategorileri JSON formatında döndürür"""
-    return load_categories()
 
-@app.post("/check-duplicate")
-def check_duplicate(
-    request: Request,
-    question: str = Form(...),
-    th: Optional[float] = Query(None),
-    k: int = Query(3, ge=1, le=10),
-):
-    q = embed(question)
-    vec_str = "[" + ",".join(f"{x:.6f}" for x in q.tolist()) + "]"
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, question, answer, keywords, category, "
-            "       1 - (embedding <=> %s::vector) AS sim "
-            "FROM questions "
-            "ORDER BY embedding <=> %s::vector ASC LIMIT %s",
-            (vec_str, vec_str, k)
-        )
-        rows = cur.fetchall()
-    if not rows:
-        return {"duplicate": False, "results": []}
-    threshold = float(th) if th is not None else SIM_THRESHOLD
-    dup = any(float(r["sim"]) >= threshold for r in rows)
-    return {"duplicate": dup, "threshold": threshold,
-            "results": [{"id": r["id"], "question": r["question"], "sim": float(r["sim"])} for r in rows]}
+# Route'ları include et
+app.include_router(questions.router)
+app.include_router(stats.router)
 
-@app.post("/add")
-def add_item(
-    question: str = Form(...),
-    answer: str = Form(...),
-    keywords: str = Form(...),
-    category: str = Form(...)
-):
-    vec = embed(question)
-    vec_str = "[" + ",".join(f"{x:.6f}" for x in vec.tolist()) + "]"
 
-    # Önce veritabanına ekle ve ID'yi al
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            "INSERT INTO questions (question, answer, keywords, category, embedding) "
-            "VALUES (%s, %s, %s, %s, %s::vector) RETURNING id",
-            (question, answer, keywords, category, vec_str)
-        )
-        result = cur.fetchone()
-        new_id = result.get("id") if hasattr(result, 'get') else result[0]
-        conn.commit()
+# Health check endpoint
+@app.get("/health")
+def health_check():
+    """Sağlık kontrolü endpoint'i"""
+    return {"status": "healthy", "service": "FAQ Studio"}
 
-    # Şimdi JSON'a ekle (ID'yi biliyoruz)
-    raw = pathlib.Path(JSON_PATH).read_text(encoding="utf-8-sig")
-    if not raw.strip():
-        raw = "[]"
-    data = json.loads(raw)
-    data.append({"id": new_id, "question": question, "answer": answer, "keywords": keywords, "category": category})
-    pathlib.Path(JSON_PATH).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    # Update categories.json
-    cats = json.loads(pathlib.Path(CATEGORIES_PATH).read_text(encoding="utf-8"))
-    if category not in cats:
-        cats.append(category)
-        pathlib.Path(CATEGORIES_PATH).write_text(json.dumps(cats, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    return {"ok": True, "id": new_id}
-
-@app.get("/questions")
-def list_questions(limit: int = 50, offset: int = 0):
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, question, answer, keywords, category, created_at "
-            "FROM questions ORDER BY id DESC LIMIT %s OFFSET %s",
-            (limit, offset)
-        )
-        return cur.fetchall()
-
-@app.get("/questions-table", response_class=HTMLResponse)
-def questions_table(request: Request):
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, question, category, created_at FROM questions ORDER BY id DESC LIMIT 100"
-        )
-        rows = cur.fetchall()
-    return templates.TemplateResponse("questions.html", {"request": request, "rows": rows})
-
-@app.delete("/questions/{qid}")
-def delete_question(qid: int):
-    # önce DB'den sil
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("DELETE FROM questions WHERE id = %s RETURNING id", (qid,))
-        deleted = cur.fetchone()
-        if not deleted:
-            raise HTTPException(status_code=404, detail="Soru bulunamadı")
-        conn.commit()
-
-    # sonra JSON'dan sil
-    import json, pathlib
-    data_file = pathlib.Path(JSON_PATH)
-    try:
-        data = json.loads(data_file.read_text(encoding="utf-8"))
-    except Exception:
-        data = []
-
-    # JSON içinden aynı id'yi eşleştirip çıkar
-    data = [item for item in data if item.get("id") != qid]
-    data_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    return {"ok": True, "deleted_id": qid}
-
-@app.get("/questions/search")
-def search_questions(query: str, limit: int = 50, offset: int = 0):
-    like_pattern = f"%{query}%"
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT id, question, answer, keywords, category, created_at
-            FROM questions
-            WHERE question ILIKE %s OR answer ILIKE %s OR keywords ILIKE %s OR category ILIKE %s
-            ORDER BY id DESC
-            LIMIT %s OFFSET %s
-        """, (like_pattern, like_pattern, like_pattern, like_pattern, limit, offset))
-        return cur.fetchall()
-    
-@app.get("/stats/categories")
-def stats_categories():
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT category, COUNT(*) AS cnt
-            FROM questions
-            GROUP BY category
-            ORDER BY cnt DESC, category
-        """)
-        return cur.fetchall()
-
-@app.get("/stats/total")
-def stats_total():
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("SELECT COUNT(*) AS total FROM questions")
-        row = cur.fetchone()
-        return {"total": row["total"]}
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
