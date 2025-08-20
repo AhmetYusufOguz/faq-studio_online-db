@@ -152,5 +152,19 @@
     "answer": "Türkiye’de tam veya dar mükellef gerçek kişilerin elde ettikleri gelirlerden alınır.",
     "keywords": "gelir vergisi,gerçek kişi,mükellef",
     "category": "gelir"
+  },
+  {
+    "id": 28,
+    "question": "Soru ve kategori ekleme hâlâ çalışıyor mu?",
+    "answer": "İnşallah.",
+    "keywords": "test",
+    "category": "haciz"
+  },
+  {
+    "id": 29,
+    "question": "Vergi Usul Kanunu nedir?",
+    "answer": "Vergi Usul Kanunu, vergi uygulamalarında usul ve esasları belirleyen temel kanundur.",
+    "keywords": "vergi usul,VUK,kanun",
+    "category": "usul"
   }
 ]
