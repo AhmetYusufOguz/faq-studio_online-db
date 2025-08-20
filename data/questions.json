@@ -4,49 +4,56 @@
     "question": "tahakkuk nedir?",
     "answer": "kısa cevap...",
     "keywords": "tahakkuk,vergi",
-    "category": "tahakkuk"
+    "category": "tahakkuk",
+    "created_by": "anonymous"
   },
   {
     "id": 2,
     "question": "tahakkuk ne demek?",
     "answer": "Tahakkuk, bir gelir veya giderin nakit hareketi olmasa da gerçekleştiği anda kayda alınmasıdır.",
     "keywords": "tahakkuk,vergi",
-    "category": "tahakkuk"
+    "category": "tahakkuk",
+    "created_by": "anonymous"
   },
   {
     "id": 3,
     "question": "Vergi tahakkuku nasıl yapılır?",
     "answer": "Beyanname sonrası vergi dairesi tarafından hesaplanarak tahakkuk fişi düzenlenir.",
     "keywords": "tahakkuk,vergi,beyanname",
-    "category": "tahakkuk"
+    "category": "tahakkuk",
+    "created_by": "anonymous"
   },
   {
     "id": 4,
     "question": "Tahsilat nedir?",
     "answer": "Kesinleşmiş bir alacağın mükelleften tahsil edilmesi sürecidir.",
     "keywords": "tahsilat,alacak,tahakkuk",
-    "category": "tahsilat"
+    "category": "tahsilat",
+    "created_by": "anonymous"
   },
   {
     "id": 5,
     "question": "Vergi tahsilatı ne zaman yapılır?",
     "answer": "Tahakkuk eden vergi, kanunda belirtilen ödeme sürelerinde tahsil edilir.",
     "keywords": "tahsilat,vergi,ödeme",
-    "category": "tahsilat"
+    "category": "tahsilat",
+    "created_by": "anonymous"
   },
   {
     "id": 6,
     "question": "KDV nedir?",
     "answer": "Katma Değer Vergisi, mal ve hizmet teslimlerinde alınan dolaylı vergidir.",
     "keywords": "kdv,katma değer vergisi,vergi",
-    "category": "diger"
+    "category": "diger",
+    "created_by": "anonymous"
   },
   {
     "id": 8,
     "question": "Kurumlar vergisi oranı nedir?",
     "answer": "Şu an %25 olarak uygulanmaktadır.",
     "keywords": "kurumlar vergisi,oran",
-    "category": "diger"
+    "category": "diger",
+    "created_by": "anonymous"
   },
   {
     "id": 9,
@@ -60,111 +67,127 @@
     "question": "Gelir vergisi nedir?",
     "answer": "Bireylerin kazançları üzerinden alınan vergi türü.",
     "keywords": "gelir,vergi,bireysel",
-    "category": "gelir"
+    "category": "gelir",
+    "created_by": "anonymous"
   },
   {
     "id": 11,
     "question": "Gelir nedir?",
     "answer": "Gelir, bir kişinin veya kurumun belli bir dönemde elde ettiği kazançtır.",
     "keywords": "gelir,kazanç,ekonomi",
-    "category": "gelir"
+    "category": "gelir",
+    "created_by": "anonymous"
   },
   {
     "id": 15,
     "question": "Tahakkuk fişi nedir?",
     "answer": "Vergi veya borcun hesaplanıp kesinleştiğini gösteren resmî belgedir.",
     "keywords": "tahakkuk fişi,belge,kesinleşme",
-    "category": "tahakkuk"
+    "category": "tahakkuk",
+    "created_by": "anonymous"
   },
   {
     "id": 16,
     "question": "Tahakkuk ile tahsilat arasındaki fark nedir?",
     "answer": "Tahakkuk borcun hesaplanıp kesinleşmesidir; tahsilat ise bu borcun ödenmesidir.",
     "keywords": "tahakkuk,tahsilat,fark",
-    "category": "tahakkuk"
+    "category": "tahakkuk",
+    "created_by": "anonymous"
   },
   {
     "id": 17,
     "question": "Peşin ödeme indirimi var mı?",
     "answer": "Bazı vergi ve cezalarda kanuna göre peşin ödeme indirimi uygulanabilir.",
     "keywords": "peşin ödeme,indirim,ceza",
-    "category": "tahsilat"
+    "category": "tahsilat",
+    "created_by": "anonymous"
   },
   {
     "id": 18,
     "question": "Vergi borcu taksitlendirilebilir mi?",
     "answer": "Evet, şartları sağlayan borçlar için tecil ve taksitlendirme yapılabilir.",
     "keywords": "taksit,tecil,ödeme planı",
-    "category": "tahsilat"
+    "category": "tahsilat",
+    "created_by": "anonymous"
   },
   {
     "id": 19,
     "question": "Beyanname nedir?",
     "answer": "Mükellefin vergiye tabi matrahını idareye bildirdiği resmî belgedir.",
     "keywords": "beyanname,matrah,vergi beyanı",
-    "category": "beyan"
+    "category": "beyan",
+    "created_by": "anonymous"
   },
   {
     "id": 20,
     "question": "Beyanname son gönderim tarihi nedir?",
     "answer": "Beyan türüne göre değişir; ilgili takvim ve mevzuata göre belirlenir.",
     "keywords": "beyanname,son tarih,teslim",
-    "category": "beyan"
+    "category": "beyan",
+    "created_by": "anonymous"
   },
   {
     "id": 21,
     "question": "KDV iadesi nasıl alınır?",
     "answer": "İade hakkı doğuran işlemler için belgelerle başvuru yapılır; şartlar sağlanırsa iade edilir.",
     "keywords": "kdv iadesi,iade,başvuru",
-    "category": "iade"
+    "category": "iade",
+    "created_by": "anonymous"
   },
   {
     "id": 22,
     "question": "İade sürecinde sık görülen eksikler nelerdir?",
     "answer": "Eksik belge, yanlış hesaplama ve zamanında başvurmama en yaygın sorunlardır.",
     "keywords": "iade,eksik belge,hata",
-    "category": "iade"
+    "category": "iade",
+    "created_by": "anonymous"
   },
   {
     "id": 23,
     "question": "Muafiyet ve istisna nedir?",
     "answer": "Muafiyet mükellefiyetten, istisna ise belirli gelir veya işlemlerden vergi alınmamasıdır.",
     "keywords": "muafiyet,istisna,vergi",
-    "category": "diger"
+    "category": "diger",
+    "created_by": "anonymous"
   },
   {
     "id": 24,
     "question": "Vergi ziyaı cezası neyi ifade eder?",
     "answer": "Verginin zamanında veya doğru beyan edilmemesi nedeniyle alınan cezadır.",
     "keywords": "vergi ziyaı,ceza,usul",
-    "category": "diger"
+    "category": "diger",
+    "created_by": "anonymous"
   },
   {
     "id": 25,
     "question": "E-tebligat nedir?",
     "answer": "Vergi dairesi bildirimlerinin elektronik ortamda mükellefe iletilmesidir.",
     "keywords": "e-tebligat,elektronik tebligat,bildirim",
-    "category": "usul"
+    "category": "usul",
+    "created_by": "anonymous"
   },
   {
     "id": 26,
     "question": "Gelir vergisi kimlerden alınır?",
     "answer": "Türkiye’de tam veya dar mükellef gerçek kişilerin elde ettikleri gelirlerden alınır.",
     "keywords": "gelir vergisi,gerçek kişi,mükellef",
-    "category": "gelir"
-  },
-  {
-    "id": 28,
-    "question": "Soru ve kategori ekleme hâlâ çalışıyor mu?",
-    "answer": "İnşallah.",
-    "keywords": "test",
-    "category": "haciz"
+    "category": "gelir",
+    "created_by": "anonymous"
   },
   {
     "id": 29,
     "question": "Vergi Usul Kanunu nedir?",
     "answer": "Vergi Usul Kanunu, vergi uygulamalarında usul ve esasları belirleyen temel kanundur.",
     "keywords": "vergi usul,VUK,kanun",
-    "category": "usul"
+    "category": "usul",
+    "created_by": "anonymous"
+  },
+  {
+    "id": 33,
+    "question": "Kullanıcı adı denemesi",
+    "answer": "adfda",
+    "keywords": "test",
+    "category": "diger",
+    "created_by": "tester1"
   }
 ]

@@ -2,7 +2,11 @@ import os
 import requests
 import numpy as np
 from typing import List
+from app.logger import logger
+from app.config import settings
 
+OLLAMA_BASE_URL = settings.OLLAMA_BASE_URL
+EMBED_MODEL = settings.EMBED_MODEL
 
 class EmbeddingService:
     """Embedding işlemlerini yöneten servis sınıfı"""
@@ -46,8 +50,20 @@ embedding_service = EmbeddingService()
 
 # Convenience functions
 def embed(text: str) -> np.ndarray:
-    """Kısa kullanım için wrapper fonksiyon"""
-    return embedding_service.get_embedding(text)
+    try:
+        r = requests.post(
+            f"{OLLAMA_BASE_URL}/api/embeddings",
+            json={"model": EMBED_MODEL, "prompt": text},
+            timeout=20
+        )
+        r.raise_for_status()
+        vec = np.array(r.json().get("embedding"), dtype=np.float32)
+        if vec.size == 0:
+            raise ValueError("Empty embedding from ollama")
+        return vec
+    except Exception as e:
+        logger.error("Embedding error: %s", e)
+        raise
 
 def embedding_to_vector_str(embedding: np.ndarray) -> str:
     """Kısa kullanım için wrapper fonksiyon"""

@@ -30,6 +30,12 @@
 
     <label>Cevap</label><textarea name="answer" rows="3" required></textarea>
     <label>Anahtar Kelimeler (virgüllerle)</label><input type="text" name="keywords" required />
+    
+    <!-- created_by alanı eklendi -->
+    <label>Ekleyen Kullanıcı</label>
+    <input type="text" name="created_by" id="created_by" value="anonymous" 
+           style="width: 200px;" placeholder="Kullanıcı adı">
+    
     <label>Kategori</label>
     <select id="categorySel" name="category" required> 
       <option value="">Kategori seçin...</option>
@@ -62,6 +68,7 @@
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Soru</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Kategori</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Tarih</th>
+              <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Ekleyen</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">İşlem</th>
             </tr>
           </thead>
@@ -95,6 +102,26 @@
     </div>
   </div>
 
+  <!-- Silme Modal'ı -->
+  <div id="deleteModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10000;">
+    <div style="background:#111; padding:20px; margin:100px auto; width:300px; border:1px solid #333; border-radius:8px;">
+      <h3 style="margin-top:0;">Soru Sil</h3>
+      <p>ID: <span id="deleteId"></span> silinecek</p>
+      <p><strong>Soru:</strong> <span id="deleteQuestion" style="color:#ff6b6b; word-break:break-word;"></span></p>
+      
+      <label>Silen Kullanıcı:</label>
+      <input type="text" id="deleterName" value="" 
+            placeholder="Kullanıcı adınız" style="width:100%; padding:8px; margin:5px 0;">
+      
+      <div style="display:flex; gap:10px; margin-top:15px;">
+        <button onclick="confirmDelete()" 
+                style="background:#933; color:white; border:0; padding:8px 15px; cursor:pointer;">Sil</button>
+        <button onclick="closeDeleteModal()" 
+                style="background:#444; color:white; border:0; padding:8px 15px; cursor:pointer;">İptal</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // === GLOBAL VARIABLES ===
     const form = document.getElementById('qform');
@@ -103,6 +130,7 @@
     const thInput = document.getElementById('th');
     const thLabel = document.getElementById('thLabel');
     const catSel = document.getElementById('categorySel');
+    const createdByInput = document.getElementById('created_by');
     
     // Recent modal elements
     const recentModal = document.getElementById('recentModal');
@@ -176,6 +204,8 @@
         if (d.ok) {
           saveBox.innerHTML = '<div class="ok">Kaydedildi (JSON + DB) ✅</div>';
           form.reset();
+          // created_by alanını sıfırlama (default değerini koru)
+          createdByInput.value = 'anonymous';
           dupBox.innerHTML = '';
         } else {
           saveBox.innerHTML = '<div class="warn">Kaydedilemedi.</div>';
@@ -253,7 +283,7 @@
 
         // Populate table
         if (!Array.isArray(rows) || rows.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="padding:8px;color:#aaa;">Kayıt bulunamadı.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" style="padding:8px;color:#aaa;">Kayıt bulunamadı.</td></tr>';
         } else {
           for (const record of rows) {
             tbody.insertAdjacentHTML('beforeend',
@@ -262,6 +292,7 @@
                  <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.question)}</td>
                  <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.category)}</td>
                  <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.created_at)}</td>
+                 <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.created_by || 'anonymous')}</td>
                  <td style="border-bottom:1px solid #222;padding:8px;">
                     <button class="btn-del" data-id="${record.id ?? ''}" style="background:#933;color:#fff;border:0;padding:6px 10px;cursor:pointer;">Sil</button>
                   </td>
@@ -433,27 +464,6 @@
       loadRecentRecords();
     };
 
-    // Delete functionality (event delegation)
-    document.getElementById('recentTbody').addEventListener('click', async (e) => {
-      const btn = e.target.closest('.btn-del');
-      if (!btn) return;
-      
-      const id = btn.getAttribute('data-id');
-      if (!id) return;
-      
-      if (!confirm('Bu soruyu silmek istediğinize emin misiniz?')) return;
-
-      try {
-        const response = await fetch(`/questions/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('HTTP ' + response.status);
-        
-        const tr = btn.closest('tr');
-        if (tr) tr.remove();
-      } catch (error) {
-        alert('Silme hatası: ' + error.message);
-      }
-    });
-
     // Stats modal events
     document.getElementById('btnStats').onclick = async () => {
       openStatsModal();
@@ -467,6 +477,84 @@
     // Stats modal backdrop click
     statsModal.addEventListener('click', (e) => {
       if (e.target === statsModal) closeStatsModal();
+    });
+
+    // created_by alanı için localStorage desteği
+    (function() {
+      // Sayfa yüklendiğinde localStorage'dan kullanıcı adını yükle
+      const savedUser = localStorage.getItem('faq_studio_user');
+      if (savedUser) {
+        createdByInput.value = savedUser;
+      }
+
+      // Kullanıcı adı değiştiğinde localStorage'a kaydet
+      createdByInput.addEventListener('change', function() {
+        if (this.value.trim()) {
+          localStorage.setItem('faq_studio_user', this.value.trim());
+        }
+      });
+    })();
+
+    // Silme modalı için
+    let currentDeleteId = null;
+    let currentDeleteQuestion = null;
+
+    function showDeleteModal(id, question) {
+      currentDeleteId = id;
+      currentDeleteQuestion = question;
+      
+      document.getElementById('deleteId').textContent = id;
+      document.getElementById('deleteQuestion').textContent = question;
+      
+      // Kullanıcı adını doldur (localStorage'dan)
+      const savedUser = localStorage.getItem('faq_studio_user');
+      document.getElementById('deleterName').value = savedUser || 'anonymous';
+      
+      document.getElementById('deleteModal').style.display = 'block';
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').style.display = 'none';
+      currentDeleteId = null;
+      currentDeleteQuestion = null;
+    }
+
+    async function confirmDelete() {
+      const deletedBy = document.getElementById('deleterName').value || 'anonymous';
+      
+      try {
+        const formData = new FormData();
+        formData.append('deleted_by', deletedBy);
+        
+        const response = await fetch(`/questions/${currentDeleteId}`, {
+          method: 'DELETE',
+          body: formData
+        });
+        
+        if (response.ok) {
+          // Listeyi yenile
+          await loadRecentRecords();
+          closeDeleteModal();
+        }
+      } catch (error) {
+        alert('Silme hatası: ' + error.message);
+      }
+    }
+
+    // Sil butonlarını modal'a bağla (soru bilgisini de al)
+    document.getElementById('recentTbody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('.btn-del');
+      if (!btn) return;
+      
+      const tr = btn.closest('tr');
+      if (!tr) return;
+      
+      const id = btn.getAttribute('data-id');
+      const question = tr.querySelector('td:nth-child(2)').textContent; // Soru sütunundan al
+      
+      if (id && question) {
+        showDeleteModal(id, question);
+      }
     });
   </script>
 </body>
