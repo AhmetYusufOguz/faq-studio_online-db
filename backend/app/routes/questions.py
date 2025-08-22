@@ -30,6 +30,13 @@ def check_duplicate(
     k: int = Query(3, ge=1, le=10),
 ):
     """Benzer soru kontrolü yapar"""
+
+    # BASİT VALIDATION
+    if not question or not question.strip():
+        return {"duplicate": False, "results": [], "error": "Soru boş olamaz"}
+    if len(question.strip()) < 3:
+        return {"duplicate": False, "results": [], "error": "Soru çok kısa"}
+    
     # Embedding hesapla
     q = embed(question)
     vec_str = embedding_to_vector_str(q)
