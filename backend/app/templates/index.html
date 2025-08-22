@@ -166,6 +166,13 @@
       dupBox.textContent = 'Kontrol ediliyor...';
       const onlyQ = new FormData();
       onlyQ.append('question', new FormData(form).get('question'));
+      const question = new FormData(form).get('question');
+  
+      // Basit validation
+      if (!question || question.trim().length < 3) {
+        dupBox.innerHTML = '<div class="warn">Lütfen en az 3 karakterlik bir soru yazın!</div>';
+        return;
+      }
       
       try {
         const resp = await fetch(`/check-duplicate?th=${encodeURIComponent(thInput.value)}&k=3`, { 
