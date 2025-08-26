@@ -16,8 +16,8 @@
   <h1>Soru Girişi</h1>
 
   <div style="margin:8px 0 18px;">
-    <label>Eşik (benzerlik): <span id="thLabel">0.70</span></label>
-    <input id="th" type="range" min="0.50" max="0.90" step="0.01" value="0.70" style="width:260px;">
+    <label>Eşik (benzerlik): <span id="thLabel">{{ th_default }}</span></label>
+    <input id="th" type="range" min="0.50" max="0.90" step="0.01" value="{{ th_default }}" style="width:260px;">
     <button type="button" id="btnRecent" style="margin-left:12px;background:#09f;color:#000;border:0;padding:8px 12px;cursor:pointer;">Son kayıtlar</button>
     <button type="button" id="btnStats" style="margin-left:8px;background:#c07;color:#000;border:0;padding:8px 12px;cursor:pointer;">İstatistikler</button>
   </div>
@@ -40,6 +40,11 @@
     <select id="categorySel" name="category" required> 
       <option value="">Kategori seçin...</option>
       <option value="__new__">+ Yeni kategori ekle…</option> 
+      {% for category in categories %}
+      <option value="{{ category }}" {% if category == selected_category %}selected{% endif %}>
+        {{ category }}
+      </option>
+      {% endfor %}
     </select>
     <button type="submit">Kaydet</button>
     <div id="saveBox"></div>
@@ -214,6 +219,8 @@
           // created_by alanını sıfırlama (default değerini koru)
           createdByInput.value = 'anonymous';
           dupBox.innerHTML = '';
+          // Kategorileri yenile (yeni kategori eklenmiş olabilir)
+          await refreshCategories();
         } else {
           saveBox.innerHTML = '<div class="warn">Kaydedilemedi.</div>';
         }
@@ -223,10 +230,6 @@
     };
 
     // === CATEGORY SELECTION ===
-    // Kategori dropdown'u açıldığında kategorileri yükle
-    catSel.addEventListener('focus', loadCategories);
-    catSel.addEventListener('click', loadCategories);
-    
     catSel.addEventListener('change', () => {
       if (catSel.value === '__new__') {
         const yeni = prompt('Yeni kategori adı:');
@@ -241,6 +244,42 @@
         }
       }
     });
+
+    // === CATEGORY MANAGEMENT ===
+    async function refreshCategories() {
+      try {
+        const response = await fetch('/categories.json');
+        if (!response.ok) throw new Error('Kategoriler yüklenemedi');
+        
+        const categories = await response.json();
+        updateCategorySelect(categories);
+        
+      } catch (error) {
+        console.error('Kategori yenileme hatası:', error);
+      }
+    }
+
+    function updateCategorySelect(categories) {
+      const currentValue = catSel.value;
+      
+      // Clear existing options except the first two (default and "new category")
+      while (catSel.children.length > 2) {
+        catSel.removeChild(catSel.lastElementChild);
+      }
+      
+      // Add categories
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        catSel.insertBefore(option, catSel.lastElementChild); // Insert before "Yeni kategori ekle"
+      });
+      
+      // Restore previous selection if it still exists
+      if (currentValue && categories.includes(currentValue)) {
+        catSel.value = currentValue;
+      }
+    }
 
     // === RECENT MODAL FUNCTIONS ===
     function openRecentModal() {
@@ -408,40 +447,6 @@
       });
     }
 
-    // === LOAD CATEGORIES ===
-    let categoriesLoaded = false; // Kategoriler yüklenmiş mi?
-
-    async function loadCategories() {
-      if (categoriesLoaded) return; // Zaten yüklenmişse tekrar yükleme
-      
-      try {
-        const response = await fetch('/categories.json');
-        if (!response.ok) throw new Error('Kategoriler yüklenemedi');
-        
-        const categories = await response.json();
-        populateCategories(categories);
-        categoriesLoaded = true;
-        
-      } catch (error) {
-        console.error('Kategori yükleme hatası:', error);
-      }
-    }
-
-    function populateCategories(categories) {
-      // Clear existing options except the first two
-      while (catSel.children.length > 2) {
-        catSel.removeChild(catSel.lastElementChild);
-      }
-      
-      // Add categories
-      categories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        catSel.insertBefore(option, catSel.lastElementChild); // Insert before "Yeni kategori ekle"
-      });
-    }
-
     // === EVENT LISTENERS ===
 
     // Recent modal events
@@ -562,6 +567,11 @@
       if (id && question) {
         showDeleteModal(id, question);
       }
+    });
+
+    // Sayfa yüklendiğinde kategorileri yükle
+    document.addEventListener('DOMContentLoaded', async () => {
+      await refreshCategories();
     });
   </script>
 </body>

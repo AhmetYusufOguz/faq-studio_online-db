@@ -101,6 +101,9 @@ async def startup():
     ensure_categories_file()
     init_db()
     
+    # Kategori dosyası boşsa default kategorileri ekle
+    await ensure_default_categories()
+    
     # ChromaDB'yi başlat ve embedding fonksiyonunu ayarla
     chroma_service.initialize_embeddings(embed)
     
@@ -153,6 +156,18 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "Internal server error"}
     )
+
+
+# İlk çalıştırmada default kategorileri ekler
+async def ensure_default_categories():
+    """İlk çalıştırmada default kategorileri ekler"""
+    categories = load_categories()
+    
+    if not categories:  # Eğer kategori dosyası boşsa
+        default_categories = ["tahakkuk", "tahsilat", "diger"]
+        for category in default_categories:
+            add_category_if_new(category)
+        logger.info("Default categories added: %s", default_categories)
 
 
 if __name__ == "__main__":

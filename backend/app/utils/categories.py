@@ -5,24 +5,40 @@ from typing import List
 from app.logger import logger
 from app.config import settings
 
-
 class CategoryManager:
     """Kategori yönetimi sınıfı"""
     
     def __init__(self):
         self.categories_path = settings.CATEGORIES_PATH
         self.file_path = pathlib.Path(self.categories_path)
-        self.default_categories = ["tahakkuk", "tahsilat", "diger"]
+        # Hard-coded default kategorileri TAMAMEN KALDIR
+        self.default_categories = ["tahakkuk", "tahsilat", "diger"]  # Minimal fallback
     
     def ensure_file_exists(self):
         """Kategori dosyasının var olduğundan emin olur"""
         self.file_path.parent.mkdir(parents=True, exist_ok=True)
         if not self.file_path.exists():
+            # Dosya yoksa, mevcut categories.json'dan veya fallback'ten yükle
+            existing_categories = self._load_existing_categories()
             self.file_path.write_text(
-                json.dumps(self.default_categories, ensure_ascii=False, indent=2), 
+                json.dumps(existing_categories, ensure_ascii=False, indent=2), 
                 encoding="utf-8"
             )
             logger.debug("Categories file created: %s", self.file_path)
+    
+    def _load_existing_categories(self) -> List[str]:
+        """Mevcut kategorileri yükler (dosya okuma - recursive olmayan)"""
+        try:
+            # Önce ana proje dizinindeki categories.json'dan yükle
+            main_categories_path = Path(__file__).parent.parent / 'categories.json'
+            if main_categories_path.exists():
+                with open(main_categories_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            logger.warning("Error loading main categories: %s", e)
+        
+        # Fallback: hard-coded minimal kategoriler
+        return self.default_categories.copy()
     
     def load_categories(self) -> List[str]:
         """Kategorileri yükler"""
@@ -31,12 +47,16 @@ class CategoryManager:
                 raw = self.file_path.read_text(encoding="utf-8-sig").strip()
                 if raw:
                     return json.loads(raw)
-        except (json.JSONDecodeError, FileNotFoundError):
-            pass
-        return self.default_categories.copy()
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            logger.error("Error loading categories: %s", e)
+        
+        # Hata durumunda mevcut kategorileri yükle
+        return self._load_existing_categories()
     
     def save_categories(self, categories: List[str]):
         """Kategorileri kaydeder"""
+        # Kategorileri alfabetik sırala
+        categories.sort()
         self.file_path.write_text(
             json.dumps(categories, ensure_ascii=False, indent=2), 
             encoding="utf-8"
@@ -70,7 +90,6 @@ class CategoryManager:
         exists = category in self.load_categories()
         logger.debug("Category check: %s -> %s", category, exists)
         return exists
-
 
 # Global instance
 category_manager = CategoryManager()
