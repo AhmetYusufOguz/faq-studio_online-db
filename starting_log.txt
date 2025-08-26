@@ -1,0 +1,120 @@
+PS C:\Users\ayogu\Desktop\Code\Yonca\faq-studio> docker logs -f ai_faq_api  
+/app/venv/lib/python3.11/site-packages/pydantic/_internal/_config.py:341: UserWarning: Valid config keys have changed in V2:
+* 'schema_extra' has been renamed to 'json_schema_extra'
+  warnings.warn(message, UserWarning)
+Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+2025-08-26 17:37:29,917 INFO faqstudio :: ChromaDB initialized at chroma_db
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+2025-08-26 17:37:29,942 INFO faqstudio :: Application starting…
+2025-08-26 17:37:30,033 INFO faqstudio :: Embedding function set for ChromaDB
+Add of existing embedding ID: 1
+Add of existing embedding ID: 2
+Add of existing embedding ID: 3
+Add of existing embedding ID: 4
+Add of existing embedding ID: 5
+Add of existing embedding ID: 6
+Add of existing embedding ID: 8
+Add of existing embedding ID: 9
+Add of existing embedding ID: 10
+Add of existing embedding ID: 11
+Add of existing embedding ID: 15
+Add of existing embedding ID: 16
+Add of existing embedding ID: 17
+Add of existing embedding ID: 18
+Add of existing embedding ID: 19
+Add of existing embedding ID: 20
+Add of existing embedding ID: 21
+Add of existing embedding ID: 22
+Add of existing embedding ID: 23
+Add of existing embedding ID: 24
+Add of existing embedding ID: 25
+Add of existing embedding ID: 26
+Add of existing embedding ID: 29
+Add of existing embedding ID: 38
+Add of existing embedding ID: 39
+Add of existing embedding ID: 40
+Add of existing embedding ID: 1
+Add of existing embedding ID: 2
+Add of existing embedding ID: 3
+Add of existing embedding ID: 4
+Add of existing embedding ID: 5
+Add of existing embedding ID: 6
+Add of existing embedding ID: 8
+Add of existing embedding ID: 9
+Add of existing embedding ID: 10
+Add of existing embedding ID: 11
+Add of existing embedding ID: 15
+Add of existing embedding ID: 16
+Add of existing embedding ID: 17
+Add of existing embedding ID: 18
+Add of existing embedding ID: 19
+Add of existing embedding ID: 20
+Add of existing embedding ID: 21
+Add of existing embedding ID: 22
+Add of existing embedding ID: 23
+Add of existing embedding ID: 24
+Add of existing embedding ID: 25
+Add of existing embedding ID: 26
+Add of existing embedding ID: 29
+Add of existing embedding ID: 38
+Add of existing embedding ID: 39
+Add of existing embedding ID: 40
+Insert of existing embedding ID: 1
+Add of existing embedding ID: 1
+Failed to send telemetry event CollectionAddEvent: capture() takes 1 positional argument but 3 were given
+Insert of existing embedding ID: 2
+Add of existing embedding ID: 2
+Insert of existing embedding ID: 3
+Add of existing embedding ID: 3
+Insert of existing embedding ID: 4
+Add of existing embedding ID: 4
+Insert of existing embedding ID: 5
+Add of existing embedding ID: 5
+Insert of existing embedding ID: 6
+Add of existing embedding ID: 6
+Insert of existing embedding ID: 8
+Add of existing embedding ID: 8
+Insert of existing embedding ID: 9
+Add of existing embedding ID: 9
+Insert of existing embedding ID: 10
+Add of existing embedding ID: 10
+Insert of existing embedding ID: 11
+Add of existing embedding ID: 11
+Insert of existing embedding ID: 15
+Add of existing embedding ID: 15
+Insert of existing embedding ID: 16
+Add of existing embedding ID: 16
+Insert of existing embedding ID: 17
+Add of existing embedding ID: 17
+Insert of existing embedding ID: 18
+Add of existing embedding ID: 18
+Insert of existing embedding ID: 19
+Add of existing embedding ID: 19
+Insert of existing embedding ID: 20
+Add of existing embedding ID: 20
+Insert of existing embedding ID: 21
+Add of existing embedding ID: 21
+Insert of existing embedding ID: 22
+Add of existing embedding ID: 22
+Insert of existing embedding ID: 23
+Add of existing embedding ID: 23
+Insert of existing embedding ID: 24
+Add of existing embedding ID: 24
+Insert of existing embedding ID: 25
+Add of existing embedding ID: 25
+Insert of existing embedding ID: 26
+Add of existing embedding ID: 26
+Insert of existing embedding ID: 29
+Add of existing embedding ID: 29
+Insert of existing embedding ID: 38
+Add of existing embedding ID: 38
+Insert of existing embedding ID: 39
+Add of existing embedding ID: 39
+Insert of existing embedding ID: 40
+Add of existing embedding ID: 40
+2025-08-26 17:37:38,848 INFO faqstudio :: Loaded 26 questions to ChromaDB
+2025-08-26 17:37:38,848 INFO faqstudio :: DB init ok; OLLAMA_BASE_URL=http://ollama:11434 EMBED_MODEL=bge-m3
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)

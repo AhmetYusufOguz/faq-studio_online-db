@@ -197,5 +197,13 @@
     "keywords": "faiz,gecikme,hesaplama",
     "category": "faiz",
     "created_by": "tester1"
+  },
+  {
+    "id": 40,
+    "question": "gbf",
+    "answer": "gdfb",
+    "keywords": "dgf",
+    "category": "tahakkuk",
+    "created_by": "anonymous"
   }
 ]

@@ -23,12 +23,12 @@ from .utils.embeddings import embed
 # docker compose up -d --force-recreate api
 # Logları görmek    :   docker logs -f ai_faq_api
 
-# Durum kontrolü    :   docer ps
+# Durum kontrolü    :   docker compose ps
 # Durdurma          :   docker compose down
 # Başlatma          :   docker compose up -d
 
 # PostgreSQL'e bakma:   docker exec -it ai_faq_db psql -U faq -d faqdb
-# Soruları listeleme:   SELECT id, question, category, created_at, created_by FROM questions ORDER BY id DESC LIMIT 10;
+# Soruları listeleme:   SELECT id, question, category, embedding, created_at, created_by FROM questions ORDER BY id DESC LIMIT 10;
 # Soru güncelleme   :   UPDATE questions SET created_by = 'tester1' WHERE id = 33;
 
 
