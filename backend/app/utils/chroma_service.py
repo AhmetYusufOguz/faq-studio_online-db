@@ -10,7 +10,9 @@ class ChromaService:
     
     def __init__(self):
         # ChromaDB path'ini environment'dan al veya default kullan
-        chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
+        # chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
+        # self.client = chromadb.PersistentClient(path=chroma_path)
+        chroma_path = settings.CHROMA_DB_PATH
         self.client = chromadb.PersistentClient(path=chroma_path)
         self.collection = self.client.get_or_create_collection(
             name="faq_questions",
