@@ -11,6 +11,7 @@ from ..utils.json_io import append_question_to_json, remove_question_from_json
 from ..utils.categories import load_categories, add_category_if_new
 from ..logger import logger
 from ..config import settings
+from ..utils.chroma_service import chroma_service
 
 
 # Router ve template setup
@@ -23,13 +24,13 @@ DEFAULT_THRESHOLD = settings.SIM_THRESHOLD
 
 
 @router.post("/check-duplicate")
-def check_duplicate(
+async def check_duplicate(
     request: Request,
     question: str = Form(...),
     th: Optional[float] = Query(None),
     k: int = Query(3, ge=1, le=10),
 ):
-    """Benzer soru kontrolü yapar"""
+    """Benzer soru kontrolü yapar - ChromaDB ile"""
 
     # BASİT VALIDATION
     if not question or not question.strip():
@@ -39,25 +40,15 @@ def check_duplicate(
     
     # Embedding hesapla
     q = embed(question)
-    vec_str = embedding_to_vector_str(q)
     
-    # Veritabanından benzer soruları bul
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, question, answer, keywords, category, "
-            "       1 - (embedding <=> %s::vector) AS sim "
-            "FROM questions "
-            "ORDER BY embedding <=> %s::vector ASC LIMIT %s",
-            (vec_str, vec_str, k)
-        )
-        rows = cur.fetchall()
-    
-    if not rows:
-        return {"duplicate": False, "results": []}
+    # ChromaDB'de benzer soruları ara
+    threshold = float(th) if th is not None else DEFAULT_THRESHOLD
+    similar_questions = chroma_service.search_similar(
+        q.tolist(), top_k=k, threshold=threshold
+    )
     
     # Benzerlik kontrolü
-    threshold = float(th) if th is not None else DEFAULT_THRESHOLD
-    dup = any(float(r["sim"]) >= threshold for r in rows)
+    dup = len(similar_questions) > 0
     
     logger.debug(
         "Duplicate check qlen=%s th=%.2f topk=%s result=%s req_id=%s ip=%s",
@@ -71,13 +62,13 @@ def check_duplicate(
         "threshold": threshold,
         "results": [
             {"id": r["id"], "question": r["question"], "sim": float(r["sim"])} 
-            for r in rows
+            for r in similar_questions
         ]
     }
 
 
 @router.post("/add")
-def add_question(
+async def add_question(
     request: Request,
     question: str = Form(...),
     answer: str = Form(...),
@@ -85,7 +76,7 @@ def add_question(
     category: str = Form(...),
     created_by: str = Form("anonymous")  # 👈 yeni alan
 ):
-    """Yeni soru ekler"""
+    """Yeni soru ekler - ChromaDB ile"""
     # Embedding hesapla
     vec = embed(question)
     vec_str = embedding_to_vector_str(vec)
@@ -100,6 +91,11 @@ def add_question(
         result = cur.fetchone()
         new_id = result.get("id") if hasattr(result, 'get') else result[0]
         conn.commit()
+
+    # ChromaDB'ye ekle
+    chroma_service.add_question(
+        new_id, question, answer, keywords, category, vec.tolist()
+    )
 
     # JSON dosyasına ekle
     question_data = {
@@ -166,12 +162,12 @@ def questions_table(request: Request):
 
 
 @router.delete("/questions/{qid}")
-def delete_question(
+async def delete_question(
     request: Request,
     qid: int,
     deleted_by: str = Form("anonymous")  # 👈 Sadece log için
 ):
-    """Soru siler"""
+    """Soru siler - ChromaDB ile"""
     # Veritabanından sil
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("DELETE FROM questions WHERE id = %s RETURNING id", (qid,))
@@ -180,6 +176,9 @@ def delete_question(
             raise HTTPException(status_code=404, detail="Soru bulunamadı")
         conn.commit()
 
+    # ChromaDB'den sil
+    chroma_service.delete_question(qid)
+    
     # JSON dosyasından sil
     success = remove_question_from_json(qid)
     

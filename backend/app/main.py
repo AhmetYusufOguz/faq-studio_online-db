@@ -2,18 +2,21 @@
 import pathlib
 import uuid
 import time
+import asyncio
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
 # Local imports
-from .db import init_db
+from .db import init_db, get_conn
 from .utils.json_io import ensure_json_file
 from .utils.categories import ensure_categories_file, load_categories
 from .routes import questions, stats
 from .logger import logger
 from .config import settings
+from .utils.chroma_service import chroma_service
+from .utils.embeddings import embed
 
 # Docker Compose ile çalıştırma:
 # docker compose build api
@@ -25,7 +28,7 @@ from .config import settings
 # Başlatma          :   docker compose up -d
 
 # PostgreSQL'e bakma:   docker exec -it ai_faq_db psql -U faq -d faqdb
-# Soruları listeleme:   SELECT id, question, category, created_at FROM questions ORDER BY id DESC;
+# Soruları listeleme:   SELECT id, question, category, created_at, created_by FROM questions ORDER BY id DESC LIMIT 10;
 # Soru güncelleme   :   UPDATE questions SET created_by = 'tester1' WHERE id = 33;
 
 # Load environment variables
@@ -74,13 +77,41 @@ async def log_requests(request: Request, call_next):
     return response
 
 
+async def load_existing_questions_to_chroma():
+    """Mevcut soruları ChromaDB'ye yükler"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT id, question, answer, keywords, category FROM questions")
+            rows = cur.fetchall()
+            
+            for row in rows:
+                embedding = embed(row["question"])
+                chroma_service.add_question(
+                    row["id"], row["question"], row["answer"], 
+                    row["keywords"], row["category"], embedding.tolist()
+                )
+                # Küçük bir bekleme süresi ekleyerek Ollama'ya aşırı yük binmesini önle
+                await asyncio.sleep(0.1)
+            
+            logger.info("Loaded %s questions to ChromaDB", len(rows))
+    except Exception as e:
+        logger.error("Error loading questions to ChromaDB: %s", e)
+
+
 @app.on_event("startup")
-def startup():
+async def startup():
     """Uygulama başlatma işlemleri"""
     logger.info("Application starting…")
     ensure_json_file()
     ensure_categories_file()
     init_db()
+    
+    # ChromaDB'yi başlat ve embedding fonksiyonunu ayarla
+    chroma_service.initialize_embeddings(embed)
+    
+    # Mevcut soruları ChromaDB'ye yükle
+    await load_existing_questions_to_chroma()
+    
     logger.info("DB init ok; OLLAMA_BASE_URL=%s EMBED_MODEL=%s", settings.OLLAMA_BASE_URL, settings.EMBED_MODEL)
 
 

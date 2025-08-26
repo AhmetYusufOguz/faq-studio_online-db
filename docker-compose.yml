@@ -39,7 +39,9 @@ services:
     volumes:
       - ./data:/app/data
       - ./backend/app:/app/app
+      - chroma_data:/app/chroma_db  # ChromaDB verileri için volume
 
 volumes:
   dbdata:
   ollama:
+  chroma_data:  # ChromaDB volume tanımı
