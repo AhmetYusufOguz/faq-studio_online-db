@@ -5,15 +5,13 @@ from typing import List
 from app.logger import logger
 from app.config import settings
 
-OLLAMA_BASE_URL = settings.OLLAMA_BASE_URL
-EMBED_MODEL = settings.EMBED_MODEL
-
 class EmbeddingService:
     """Embedding işlemlerini yöneten servis sınıfı"""
     
     def __init__(self):
-        self.model = os.getenv("EMBED_MODEL", "bge-m3")
-        self.base_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
+        self.model = settings.EMBED_MODEL
+        self.base_url = settings.OLLAMA_BASE_URL
+        self.request_timeout = settings.REQUEST_TIMEOUT
     
     def get_embedding(self, text: str) -> np.ndarray:
         """Metni embedding vektörüne çevirir"""
@@ -21,7 +19,7 @@ class EmbeddingService:
             response = requests.post(
                 f"{self.base_url}/api/embeddings",
                 json={"model": self.model, "prompt": text},
-                timeout=20
+                timeout=self.request_timeout
             )
             response.raise_for_status()
             embedding = response.json().get("embedding")
@@ -52,9 +50,9 @@ embedding_service = EmbeddingService()
 def embed(text: str) -> np.ndarray:
     try:
         r = requests.post(
-            f"{OLLAMA_BASE_URL}/api/embeddings",
-            json={"model": EMBED_MODEL, "prompt": text},
-            timeout=20
+            f"{settings.OLLAMA_BASE_URL}/api/embeddings",
+            json={"model": settings.EMBED_MODEL, "prompt": text},
+            timeout=settings.REQUEST_TIMEOUT
         )
         r.raise_for_status()
         vec = np.array(r.json().get("embedding"), dtype=np.float32)

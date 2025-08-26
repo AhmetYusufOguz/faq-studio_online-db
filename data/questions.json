@@ -181,5 +181,21 @@
     "keywords": "vergi usul,VUK,kanun",
     "category": "usul",
     "created_by": "anonymous"
+  },
+  {
+    "id": 38,
+    "question": "Vergi cezasına itiraz süresi kaç gündür?",
+    "answer": "Vergi cezasına karşı 30 gün içinde vergi mahkemesine başvuru yapılmalıdır.",
+    "keywords": "ceza,itiraz,vergi mahkemesi",
+    "category": "itiraz",
+    "created_by": "tester0"
+  },
+  {
+    "id": 39,
+    "question": "Gecikme faizi nasıl hesaplanır?",
+    "answer": "Gecikme faizi, borcun geciktiği gün sayısı ve yıllık faiz oranı üzerinden günlük bazda hesaplanır.",
+    "keywords": "faiz,gecikme,hesaplama",
+    "category": "faiz",
+    "created_by": "tester1"
   }
 ]
