@@ -13,13 +13,24 @@ def get_conn():
 def init_db():
     from os.path import dirname, join
     path = join(dirname(__file__), "schema.sql")
-    with get_conn() as conn, conn.cursor() as cur, open(path, "r", encoding="utf-8") as f:
-        sql = f.read()
-        # Remove UTF-8 BOM if present
-        if sql.startswith("\ufeff"):
-            sql = sql.lstrip("\ufeff")
-        # Execute statements one by one
-        for stmt in sql.split(";"):
-            if stmt.strip():
-                cur.execute(stmt)
-        conn.commit()
+    
+    # İlk olarak vector extension olmadan bağlan
+    conn = psycopg.connect(settings.DATABASE_URL, row_factory=dict_row)
+    
+    try:
+        with conn.cursor() as cur, open(path, "r", encoding="utf-8") as f:
+            sql = f.read()
+            # Remove UTF-8 BOM if present
+            if sql.startswith("\ufeff"):
+                sql = sql.lstrip("\ufeff")
+            # Execute the entire SQL as one statement instead of splitting by semicolon
+            # This prevents breaking DO $ blocks
+            cur.execute(sql)
+            conn.commit()
+    finally:
+        conn.close()
+    
+    # Şimdi vector extension yüklendiği için normal get_conn() kullanabiliriz
+    # Test bağlantısı yap
+    with get_conn() as test_conn:
+        pass
