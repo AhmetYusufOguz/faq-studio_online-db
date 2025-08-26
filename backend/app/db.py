@@ -1,11 +1,10 @@
 ﻿import os, psycopg
 from psycopg.rows import dict_row
 from pgvector.psycopg import register_vector
-
-DATABASE_URL = os.getenv("DATABASE_URL")
+from app.config import settings
 
 def get_conn():
-    conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
+    conn = psycopg.connect(settings.DATABASE_URL, row_factory=dict_row)
     # Register pgvector adapter so we can pass Vector() objects
     register_vector(conn)
     return conn

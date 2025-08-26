@@ -31,8 +31,6 @@ from .utils.embeddings import embed
 # Soruları listeleme:   SELECT id, question, category, created_at, created_by FROM questions ORDER BY id DESC LIMIT 10;
 # Soru güncelleme   :   UPDATE questions SET created_by = 'tester1' WHERE id = 33;
 
-# Load environment variables
-load_dotenv()
 
 # FastAPI app initialization
 app = FastAPI(title="FAQ Studio")
@@ -40,9 +38,6 @@ app = FastAPI(title="FAQ Studio")
 # Template setup
 TPL_DIR = pathlib.Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TPL_DIR))
-
-# Environment variables
-SIM_THRESHOLD = float(os.getenv("SIM_THRESHOLD", "0.85"))
 
 
 @app.middleware("http")
@@ -123,7 +118,7 @@ def index(request: Request):
         {
             "request": request, 
             "categories": load_categories(), 
-            "th_default": SIM_THRESHOLD
+            "th_default": settings.SIM_THRESHOLD
         }
     )
 
