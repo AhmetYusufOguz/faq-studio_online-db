@@ -199,51 +199,19 @@
     "created_by": "tester1"
   },
   {
-    "id": 40,
-    "question": "gbf",
-    "answer": "gdfb",
-    "keywords": "dgf",
-    "category": "tahakkuk",
-    "created_by": "anonymous"
-  },
-  {
-    "id": 41,
-    "question": "cafds",
-    "answer": "cadfs",
-    "keywords": "ads",
-    "category": "faiz",
-    "created_by": "tester-0"
-  },
-  {
-    "id": 44,
-    "question": "dfgh",
-    "answer": "oıuy",
-    "keywords": "test",
-    "category": "usul",
-    "created_by": "tester-00"
-  },
-  {
-    "id": 45,
-    "question": "lnkh",
-    "answer": "vd",
-    "keywords": "test",
-    "category": "usul",
-    "created_by": "tester-00"
-  },
-  {
-    "id": 46,
-    "question": "Şu anın ilk sorusu",
-    "answer": "6 kere tüm soruları çekecek",
-    "keywords": "test",
-    "category": "diger",
+    "id": 48,
+    "question": "Vergi borcu yapılandırması hangi durumlarda bozulur?",
+    "answer": "Taksitlerin süresinde ödenmemesi veya eksik ödenmesi halinde yapılandırma bozulur.",
+    "keywords": "yapilandirma,borç,taksit",
+    "category": "yapilandirma",
     "created_by": "tester-10"
   },
   {
-    "id": 47,
-    "question": "testt",
-    "answer": "testtt",
-    "keywords": "test",
-    "category": "usul",
-    "created_by": "tester-1"
+    "id": 49,
+    "question": "Vergi borcunu tecil ettirmek için hangi belgeler gereklidir?",
+    "answer": "Dilekçe, borç dökümü ve teminat gösteren belgeler genellikle tecil için istenir.",
+    "keywords": "tecil,borç,belge",
+    "category": "tecil",
+    "created_by": "tester-10"
   }
 ]
