@@ -256,11 +256,6 @@
                 // Benzer soru kutusunu temizle
                 dupBox.innerHTML = '';
                 
-                // 2 saniye sonra sayfayı tamamen yenile (isteğe bağlı)
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
-                
             } else {
                 saveBox.innerHTML = '<div class="warn">Kaydedilemedi.</div>';
             }
@@ -297,20 +292,7 @@
             if (b.toLowerCase() === 'diger') return -1;
             
             // Diğer kategorileri alfabetik sırala
-            return a.localeCompare(b, 'tr');
-        });
-    }
-
-    // stats.js veya mevcut JavaScript içinde
-    function sortCategoriesForStats(categoriesData) {
-        return [...categoriesData].sort((a, b) => {
-            // 'diger' her zaman en sonda
-            if (a.category.toLowerCase() === 'diger') return 1;
-            if (b.category.toLowerCase() === 'diger') return -1;
-            
-            // Veya soru sayısına göre sırala:
-            return b.cnt - a.cnt; // Çoktan aza
-            // return a.category.localeCompare(b.category, 'tr'); // Alfabetik
+            return b.cnt - a.cnt;
         });
     }
 
@@ -338,7 +320,13 @@
         }
         
         // Kategorileri alfabetik sırala ve ekle
-        categories.sort().forEach(category => {
+        const sortedCategories = [...categories].sort((a, b) => {
+            if (a.toLowerCase() === 'diger') return 1;
+            if (b.toLowerCase() === 'diger') return -1;
+            return a.localeCompare(b, 'tr');
+        });
+
+        sortedCategories.forEach(category => {
             const option = document.createElement('option');
             option.value = category;
             option.textContent = category;
