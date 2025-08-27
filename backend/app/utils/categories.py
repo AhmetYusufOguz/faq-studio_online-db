@@ -55,13 +55,26 @@ class CategoryManager:
     
     def save_categories(self, categories: List[str]):
         """Kategorileri kaydeder"""
-        # Kategorileri alfabetik sırala
-        categories.sort()
+        # 'diger'i en sonda tut, diğerlerini alfabetik sırala
+        sorted_cats = []
+        diger_cat = None
+        
+        for cat in categories:
+            if cat.lower() == 'diger':
+                diger_cat = cat
+            else:
+                sorted_cats.append(cat)
+        
+        sorted_cats.sort()  # Alfabetik sırala
+        
+        if diger_cat:
+            sorted_cats.append(diger_cat)  # 'diger'i en sona ekle
+        
         self.file_path.write_text(
-            json.dumps(categories, ensure_ascii=False, indent=2), 
+            json.dumps(sorted_cats, ensure_ascii=False, indent=2), 
             encoding="utf-8"
         )
-        logger.debug("Categories saved: %s items", len(categories))
+        logger.debug("Categories saved: %s items", len(sorted_cats))
     
     def add_category(self, category: str) -> bool:
         """Yeni kategori ekler, zaten varsa False döndürür"""

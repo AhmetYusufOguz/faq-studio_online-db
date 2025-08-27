@@ -26,23 +26,38 @@ class ChromaService:
         self.embedding_model = embedding_function
         logger.info("Embedding function set for ChromaDB")
     
+    
     def add_question(self, question_id: int, question: str, answer: str, 
-                    keywords: str, category: str, embedding: List[float]):
-        """Soru ekle"""
-        metadata = {
-            "id": str(question_id),
-            "answer": answer,
-            "keywords": keywords,
-            "category": category
-        }
-        
-        self.collection.add(
-            ids=[str(question_id)],
-            embeddings=[embedding],
-            metadatas=[metadata],
-            documents=[question]
-        )
-        logger.debug("Question added to ChromaDB: id=%s", question_id)
+                keywords: str, category: str, embedding: List[float]):
+        """Soru ekler - çift eklemeyi önler"""
+        try:
+            # Daha güvenli bir şekilde var olup olmadığını kontrol et
+            existing = self.collection.get(ids=[str(question_id)], include=[])
+            if existing and existing['ids'] and str(question_id) in existing['ids']:
+                if settings.DEBUG:
+                    logger.debug("Question %s already exists in ChromaDB, skipping", question_id)
+                return False  # Eklenmedi
+            
+            metadata = {
+                "id": str(question_id),
+                "answer": answer,
+                "keywords": keywords,
+                "category": category
+            }
+            
+            self.collection.add(
+                ids=[str(question_id)],
+                embeddings=[embedding],
+                metadatas=[metadata],
+                documents=[question]
+            )
+            
+            logger.debug("Question added to ChromaDB: id=%s", question_id)
+            return True  # Eklendi
+            
+        except Exception as e:
+            logger.error("Error adding question %s to ChromaDB: %s", question_id, e)
+            return False
     
     def search_similar(self, query_embedding: List[float], top_k: int = 3, 
                       threshold: float = 0.7):
