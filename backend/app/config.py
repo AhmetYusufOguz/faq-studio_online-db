@@ -117,7 +117,7 @@ class Settings(BaseSettings):
                 "CHROMA_DB_PATH": "./chroma_db",
                 "HOST": "0.0.0.0",
                 "PORT": 8000,
-                "LOG_LEVEL": "INFO",
+                "LOG_LEVEL": "INFO", # INFO, DEBUG, WARNING, ERROR, CRITICAL
                 "DEBUG": False
             }
         }

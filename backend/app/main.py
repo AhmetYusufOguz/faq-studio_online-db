@@ -72,22 +72,33 @@ async def log_requests(request: Request, call_next):
     return response
 
 
+_chroma_loaded = False
 async def load_existing_questions_to_chroma():
-    """Mevcut soruları ChromaDB'ye yükler"""
+    """Mevcut soruları ChromaDB'ye yükler (sadece bir kez)"""
+    global _chroma_loaded
+    
+    if _chroma_loaded:
+        logger.debug("ChromaDB already loaded, skipping")
+        return
+        
     try:
         with get_conn() as conn, conn.cursor() as cur:
             cur.execute("SELECT id, question, answer, keywords, category FROM questions")
             rows = cur.fetchall()
             
             for row in rows:
-                embedding = embed(row["question"])
-                chroma_service.add_question(
-                    row["id"], row["question"], row["answer"], 
-                    row["keywords"], row["category"], embedding.tolist()
-                )
-                # Küçük bir bekleme süresi ekleyerek Ollama'ya aşırı yük binmesini önle
-                await asyncio.sleep(0.1)
+                try:
+                    embedding = embed(row["question"])
+                    chroma_service.add_question(
+                        row["id"], row["question"], row["answer"], 
+                        row["keywords"], row["category"], embedding.tolist()
+                    )
+                    # Küçük bir bekleme süresi ekleyerek Ollama'ya aşırı yük binmesini önle
+                    await asyncio.sleep(0.05)  # 0.1'den 0.05'e düşürdüm
+                except Exception as e:
+                    logger.error("Error loading question %s to ChromaDB: %s", row["id"], e)
             
+            _chroma_loaded = True
             logger.info("Loaded %s questions to ChromaDB", len(rows))
     except Exception as e:
         logger.error("Error loading questions to ChromaDB: %s", e)

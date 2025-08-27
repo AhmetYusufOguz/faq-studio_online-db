@@ -74,7 +74,7 @@ async def add_question(
     answer: str = Form(...),
     keywords: str = Form(...),
     category: str = Form(...),
-    created_by: str = Form("anonymous")  # 👈 yeni alan
+    created_by: str = Form("anonymous")
 ):
     """Yeni soru ekler - ChromaDB ile"""
     # Embedding hesapla
@@ -84,9 +84,9 @@ async def add_question(
     # Veritabanına ekle ve ID al - created_by alanını da ekle!
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO questions (question, answer, keywords, category, embedding, created_by) "  # 👈 created_by eklendi
-            "VALUES (%s, %s, %s, %s, %s::vector, %s) RETURNING id",  # 👈 %s eklendi
-            (question, answer, keywords, category, vec_str, created_by)  # 👈 created_by eklendi
+            "INSERT INTO questions (question, answer, keywords, category, embedding, created_by) "
+            "VALUES (%s, %s, %s, %s, %s::vector, %s) RETURNING id",
+            (question, answer, keywords, category, vec_str, created_by)
         )
         result = cur.fetchone()
         new_id = result.get("id") if hasattr(result, 'get') else result[0]
@@ -104,7 +104,7 @@ async def add_question(
         "answer": answer, 
         "keywords": keywords, 
         "category": category,
-        "created_by": created_by  # 👈 JSON'a da ekle
+        "created_by": created_by
     }
     append_question_to_json(question_data)
 
@@ -165,7 +165,7 @@ def questions_table(request: Request):
 async def delete_question(
     request: Request,
     qid: int,
-    deleted_by: str = Form("anonymous")  # 👈 Sadece log için
+    deleted_by: str = Form("anonymous")
 ):
     """Soru siler - ChromaDB ile"""
     # Veritabanından sil
