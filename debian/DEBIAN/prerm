@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+if [ "$1" = "remove" ]; then
+    # Stop services
+    systemctl stop faq-studio.service || true
+    systemctl stop ollama.service || true
+    
+    # Disable services
+    systemctl disable faq-studio.service || true
+    systemctl disable ollama.service || true
+fi

@@ -35,14 +35,12 @@ prepare:
 .PHONY: copy-files
 copy-files: prepare
 	@echo "Copying application files..."
-# Copy backend application
-	cp -r backend/app $(BUILD_DIR)/opt/faq-studio/
-	cp backend/requirements.txt $(BUILD_DIR)/opt/faq-studio/
-	
-# Copy data files
-	cp data/*.json $(BUILD_DIR)/var/lib/faq-studio/data/ 2>/dev/null || true
-	
-# Create install scripts
+	# Copy application (not in backend/ subdirectory)
+	cp -r app $(BUILD_DIR)/opt/faq-studio/
+	cp requirements.txt $(BUILD_DIR)/opt/faq-studio/ 2>/dev/null || echo "requirements.txt not found, skipping..."
+	# Copy data files
+	cp data/*.json $(BUILD_DIR)/var/lib/faq-studio/data/ 2>/dev/null || echo "No JSON files found in data/, skipping..."
+	# Create install scripts
 	echo '#!/bin/bash' > $(BUILD_DIR)/opt/faq-studio/install-ollama.sh
 	echo 'curl -fsSL https://ollama.ai/install.sh | sh' >> $(BUILD_DIR)/opt/faq-studio/install-ollama.sh
 	chmod +x $(BUILD_DIR)/opt/faq-studio/install-ollama.sh
@@ -51,210 +49,188 @@ copy-files: prepare
 .PHONY: create-configs
 create-configs:
 	@echo "Creating configuration files..."
-# Create environment config
-	cat > $(BUILD_DIR)/etc/faq-studio/config.env << EOF
-# FAQ Studio Configuration
-	DATABASE_URL=postgresql://user:pass@localhost:5432/faqdb
-	OLLAMA_BASE_URL=http://localhost:11434
-	EMBED_MODEL=bge-m3
-	SIM_THRESHOLD=0.70
-	JSON_PATH=/var/lib/faq-studio/data/questions.json
-	CATEGORIES_PATH=/var/lib/faq-studio/data/categories.json
-	CHROMA_DB_PATH=/var/lib/faq-studio/chroma_db
-	HOST=0.0.0.0
-	PORT=8000
-	LOG_LEVEL=INFO
-	DEBUG=false
-	EOF
-
+	# Create environment config
+	@echo "# FAQ Studio Configuration" > $(BUILD_DIR)/etc/faq-studio/config.env
+	@echo "DATABASE_URL=postgresql://user:pass@localhost:5432/faqdb" >> $(BUILD_DIR)/etc/faq-studio/config.env
+	@echo "OLLAMA_BASE_URL=http://localhost:11434" >> $(BUILD_DIR)/etc/faq-studio/config.env
+	@echo "EMBED_MODEL=bge-m3" >> $(BUILD_DIR)/etc/faq-studio/config.env
+	@echo "SIM_THRESHOLD=0.70" >> $(BUILD_DIR)/etc/faq-studio/config.env
+	@echo "JSON_PATH=/var/lib/faq-studio/data/questions.json" >> $(BUILD_DIR)/etc/faq-studio/config.env
+	@echo "CATEGORIES_PATH=/var/lib/faq-studio/data/categories.json" >> $(BUILD_DIR)/etc/faq-studio/config.env
+	@echo "CHROMA_DB_PATH=/var/lib/faq-studio/chroma_db" >> $(BUILD_DIR)/etc/faq-studio/config.env
+	@echo "HOST=0.0.0.0" >> $(BUILD_DIR)/etc/faq-studio/config.env
+	@echo "PORT=8000" >> $(BUILD_DIR)/etc/faq-studio/config.env
+	@echo "LOG_LEVEL=INFO" >> $(BUILD_DIR)/etc/faq-studio/config.env
+	@echo "DEBUG=false" >> $(BUILD_DIR)/etc/faq-studio/config.env
 	# Create systemd service files
-	cat > $(BUILD_DIR)/etc/systemd/system/ollama.service << 'EOF'
-	[Unit]
-	Description=Ollama AI Service
-	After=network.target
-
-	[Service]
-	Type=simple
-	User=ollama
-	Group=ollama
-	ExecStart=/usr/local/bin/ollama serve
-	Environment=OLLAMA_HOST=127.0.0.1:11434
-	Restart=always
-	RestartSec=5
-
-	[Install]
-	WantedBy=multi-user.target
-	EOF
-
-	cat > $(BUILD_DIR)/etc/systemd/system/faq-studio.service << 'EOF'
-	[Unit]
-	Description=FAQ Studio API
-	After=network.target ollama.service
-	Requires=ollama.service
-
-	[Service]
-	Type=simple
-	User=faq-studio
-	Group=faq-studio
-	WorkingDirectory=/opt/faq-studio
-	ExecStart=/opt/faq-studio/venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-	EnvironmentFile=/etc/faq-studio/config.env
-	Restart=always
-	RestartSec=5
-
-	[Install]
-	WantedBy=multi-user.target
-	EOF
+	@echo "[Unit]" > $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "Description=Ollama AI Service" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "After=network.target" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "[Service]" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "Type=simple" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "User=ollama" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "Group=ollama" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "ExecStart=/usr/local/bin/ollama serve" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "Environment=OLLAMA_HOST=127.0.0.1:11434" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "Restart=always" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "RestartSec=5" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "[Install]" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	@echo "WantedBy=multi-user.target" >> $(BUILD_DIR)/etc/systemd/system/ollama.service
+	# Create FAQ Studio service
+	@echo "[Unit]" > $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "Description=FAQ Studio API" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "After=network.target ollama.service" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "Requires=ollama.service" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "[Service]" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "Type=simple" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "User=faq-studio" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "Group=faq-studio" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "WorkingDirectory=/opt/faq-studio" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "ExecStart=/opt/faq-studio/venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "EnvironmentFile=/etc/faq-studio/config.env" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "Restart=always" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "RestartSec=5" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "[Install]" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
+	@echo "WantedBy=multi-user.target" >> $(BUILD_DIR)/etc/systemd/system/faq-studio.service
 
 # Create debian control files
 .PHONY: create-control
 create-control:
 	@echo "Creating debian control files..."
-	
 	# Create control file
-	cat > $(BUILD_DIR)/DEBIAN/control << EOF
-Package: $(PACKAGE_NAME)
-Version: $(VERSION)
-Section: utils
-Priority: optional
-Architecture: $(ARCH)
-Depends: python3 (>= 3.8), python3-pip, python3-venv, curl, systemd
-Maintainer: FAQ Studio <admin@faq-studio.local>
-Description: FAQ Studio - AI-powered FAQ management system
-	FAQ Studio is an AI-powered FAQ management system that uses
-	Ollama for embeddings and supports PostgreSQL backend.
-	.
-	This package includes:
-	- FastAPI web application
-	- Ollama AI service integration
-	- Systemd service management
-	- Web-based question management interface
-	EOF
-
+	@echo "Package: $(PACKAGE_NAME)" > $(BUILD_DIR)/DEBIAN/control
+	@echo "Version: $(VERSION)" >> $(BUILD_DIR)/DEBIAN/control
+	@echo "Section: utils" >> $(BUILD_DIR)/DEBIAN/control
+	@echo "Priority: optional" >> $(BUILD_DIR)/DEBIAN/control
+	@echo "Architecture: $(ARCH)" >> $(BUILD_DIR)/DEBIAN/control
+	@echo "Depends: python3 (>= 3.8), python3-pip, python3-venv, curl, systemd" >> $(BUILD_DIR)/DEBIAN/control
+	@echo "Maintainer: FAQ Studio <admin@faq-studio.local>" >> $(BUILD_DIR)/DEBIAN/control
+	@echo "Description: FAQ Studio - AI-powered FAQ management system" >> $(BUILD_DIR)/DEBIAN/control
+	@echo " FAQ Studio is an AI-powered FAQ management system that uses" >> $(BUILD_DIR)/DEBIAN/control
+	@echo " Ollama for embeddings and supports PostgreSQL backend." >> $(BUILD_DIR)/DEBIAN/control
+	@echo " ." >> $(BUILD_DIR)/DEBIAN/control
+	@echo " This package includes:" >> $(BUILD_DIR)/DEBIAN/control
+	@echo " - FastAPI web application" >> $(BUILD_DIR)/DEBIAN/control
+	@echo " - Ollama AI service integration" >> $(BUILD_DIR)/DEBIAN/control
+	@echo " - Systemd service management" >> $(BUILD_DIR)/DEBIAN/control
+	@echo " - Web-based question management interface" >> $(BUILD_DIR)/DEBIAN/control
 	# Create postinst script
-	cat > $(BUILD_DIR)/DEBIAN/postinst << 'EOF'
-#!/bin/bash
-	set -e
-
-# Create users
-	if ! getent group ollama > /dev/null 2>&1; then
-		addgroup --system ollama
-	fi
-
-	if ! getent passwd ollama > /dev/null 2>&1; then
-		adduser --system --home /var/lib/ollama --shell /bin/false --group ollama
-	fi
-
-	if ! getent group faq-studio > /dev/null 2>&1; then
-		addgroup --system faq-studio
-	fi
-
-	if ! getent passwd faq-studio > /dev/null 2>&1; then
-		adduser --system --home /var/lib/faq-studio --shell /bin/false --group faq-studio
-	fi
-
-# Set permissions
-chown -R faq-studio:faq-studio /opt/faq-studio
-chown -R faq-studio:faq-studio /var/lib/faq-studio
-	chmod 755 /opt/faq-studio
-	chmod -R 644 /etc/faq-studio/config.env
-
-# Create Python virtual environment
-	if [ ! -d "/opt/faq-studio/venv" ]; then
-		python3 -m venv /opt/faq-studio/venv
-		chown -R faq-studio:faq-studio /opt/faq-studio/venv
-	fi
-
-# Install Python dependencies
-	/opt/faq-studio/venv/bin/pip install --upgrade pip
-	/opt/faq-studio/venv/bin/pip install -r /opt/faq-studio/requirements.txt
-
-# Install Ollama
-	if [ ! -f "/usr/local/bin/ollama" ]; then
-		echo "Installing Ollama..."
-		/opt/faq-studio/install-ollama.sh
-	fi
-
-# Create Ollama directories
-	mkdir -p /var/lib/ollama
-	chown ollama:ollama /var/lib/ollama
-
-# Reload systemd and enable services
-	systemctl daemon-reload
-	systemctl enable ollama.service
-	systemctl enable faq-studio.service
-
-# Start services
-	systemctl start ollama.service
-	sleep 5  # Wait for Ollama to start
-
-# Pull the embedding model
-	echo "Pulling embedding model..."
-	runuser -u ollama -- /usr/local/bin/ollama pull bge-m3
-
-# Start FAQ Studio service
-	systemctl start faq-studio.service
-
-	echo ""
-	echo "FAQ Studio installation completed!"
-	echo "- Ollama is running on http://localhost:11434"
-	echo "- FAQ Studio is running on http://localhost:8000"
-	echo ""
-	echo "Configuration file: /etc/faq-studio/config.env"
-	echo "Edit the DATABASE_URL in the config file to connect to your remote database."
-	echo ""
-	echo "To restart services:"
-	echo "  sudo systemctl restart ollama.service"
-	echo "  sudo systemctl restart faq-studio.service"
-	echo ""
-	EOF
-
+	@echo "#!/bin/bash" > $(BUILD_DIR)/DEBIAN/postinst
+	@echo "set -e" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "# Create users" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "if ! getent group ollama > /dev/null 2>&1; then" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "    addgroup --system ollama" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "fi" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "if ! getent passwd ollama > /dev/null 2>&1; then" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "    adduser --system --home /var/lib/ollama --shell /bin/false --group ollama" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "fi" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "if ! getent group faq-studio > /dev/null 2>&1; then" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "    addgroup --system faq-studio" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "fi" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "if ! getent passwd faq-studio > /dev/null 2>&1; then" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "    adduser --system --home /var/lib/faq-studio --shell /bin/false --group faq-studio" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "fi" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "# Set permissions" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "chown -R faq-studio:faq-studio /opt/faq-studio" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "chown -R faq-studio:faq-studio /var/lib/faq-studio" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "chmod 755 /opt/faq-studio" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "chmod -R 644 /etc/faq-studio/config.env" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "# Create Python virtual environment" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "if [ ! -d \"/opt/faq-studio/venv\" ]; then" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "    python3 -m venv /opt/faq-studio/venv" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "    chown -R faq-studio:faq-studio /opt/faq-studio/venv" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "fi" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "# Install Python dependencies" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "/opt/faq-studio/venv/bin/pip install --upgrade pip" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "/opt/faq-studio/venv/bin/pip install -r /opt/faq-studio/requirements.txt" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "# Install Ollama" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "if [ ! -f \"/usr/local/bin/ollama\" ]; then" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "    echo \"Installing Ollama...\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "    /opt/faq-studio/install-ollama.sh" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "fi" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "# Create Ollama directories" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "mkdir -p /var/lib/ollama" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "chown ollama:ollama /var/lib/ollama" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "# Reload systemd and enable services" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "systemctl daemon-reload" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "systemctl enable ollama.service" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "systemctl enable faq-studio.service" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "# Start services" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "systemctl start ollama.service" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "sleep 5  # Wait for Ollama to start" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "# Pull the embedding model" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"Pulling embedding model...\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "runuser -u ollama -- /usr/local/bin/ollama pull bge-m3" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "# Start FAQ Studio service" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "systemctl start faq-studio.service" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"FAQ Studio installation completed!\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"- Ollama is running on http://localhost:11434\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"- FAQ Studio is running on http://localhost:8000\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"Configuration file: /etc/faq-studio/config.env\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"Edit the DATABASE_URL in the config file to connect to your remote database.\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"To restart services:\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"  sudo systemctl restart ollama.service\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"  sudo systemctl restart faq-studio.service\"" >> $(BUILD_DIR)/DEBIAN/postinst
+	@echo "echo \"\"" >> $(BUILD_DIR)/DEBIAN/postinst
 	chmod 755 $(BUILD_DIR)/DEBIAN/postinst
-
 	# Create prerm script (before removal)
-	cat > $(BUILD_DIR)/DEBIAN/prerm << 'EOF'
-#!/bin/bash
-	set -e
-
-	if [ "$$1" = "remove" ]; then
-		# Stop services
-		systemctl stop faq-studio.service || true
-		systemctl stop ollama.service || true
-		
-		# Disable services
-		systemctl disable faq-studio.service || true
-		systemctl disable ollama.service || true
-	fi
-	EOF
-
+	@echo "#!/bin/bash" > $(BUILD_DIR)/DEBIAN/prerm
+	@echo "set -e" >> $(BUILD_DIR)/DEBIAN/prerm
+	@echo "" >> $(BUILD_DIR)/DEBIAN/prerm
+	@echo "if [ \"\$$1\" = \"remove\" ]; then" >> $(BUILD_DIR)/DEBIAN/prerm
+	@echo "    # Stop services" >> $(BUILD_DIR)/DEBIAN/prerm
+	@echo "    systemctl stop faq-studio.service || true" >> $(BUILD_DIR)/DEBIAN/prerm
+	@echo "    systemctl stop ollama.service || true" >> $(BUILD_DIR)/DEBIAN/prerm
+	@echo "    " >> $(BUILD_DIR)/DEBIAN/prerm
+	@echo "    # Disable services" >> $(BUILD_DIR)/DEBIAN/prerm
+	@echo "    systemctl disable faq-studio.service || true" >> $(BUILD_DIR)/DEBIAN/prerm
+	@echo "    systemctl disable ollama.service || true" >> $(BUILD_DIR)/DEBIAN/prerm
+	@echo "fi" >> $(BUILD_DIR)/DEBIAN/prerm
 	chmod 755 $(BUILD_DIR)/DEBIAN/prerm
-
 	# Create postrm script (after removal)
-	cat > $(BUILD_DIR)/DEBIAN/postrm << 'EOF'
-#!/bin/bash
-	set -e
-
-	if [ "$$1" = "purge" ]; then
-		# Remove systemd service files
-		rm -f /etc/systemd/system/ollama.service
-		rm -f /etc/systemd/system/faq-studio.service
-		systemctl daemon-reload
-		
-# Remove users (optional - commented out to preserve data)
-# deluser --quiet faq-studio || true
-# deluser --quiet ollama || true
-
-# Remove data directories (optional - commented out to preserve data)
-# rm -rf /var/lib/faq-studio
-# rm -rf /var/lib/ollama
-		
-		echo "FAQ Studio removed. Data directories preserved."
-		echo "To completely remove data:"
-		echo "  sudo rm -rf /var/lib/faq-studio"
-		echo "  sudo rm -rf /var/lib/ollama"
-	fi
-	EOF
-
+	@echo "#!/bin/bash" > $(BUILD_DIR)/DEBIAN/postrm
+	@echo "set -e" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "if [ \"\$$1\" = \"purge\" ]; then" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    # Remove systemd service files" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    rm -f /etc/systemd/system/ollama.service" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    rm -f /etc/systemd/system/faq-studio.service" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    systemctl daemon-reload" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    " >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    # Remove users (optional - commented out to preserve data)" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    # deluser --quiet faq-studio || true" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    # deluser --quiet ollama || true" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    # Remove data directories (optional - commented out to preserve data)" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    # rm -rf /var/lib/faq-studio" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    # rm -rf /var/lib/ollama" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    " >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    echo \"FAQ Studio removed. Data directories preserved.\"" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    echo \"To completely remove data:\"" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    echo \"  sudo rm -rf /var/lib/faq-studio\"" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "    echo \"  sudo rm -rf /var/lib/ollama\"" >> $(BUILD_DIR)/DEBIAN/postrm
+	@echo "fi" >> $(BUILD_DIR)/DEBIAN/postrm
 	chmod 755 $(BUILD_DIR)/DEBIAN/postrm
 
 # Build the package
@@ -290,6 +266,25 @@ info:
 	@echo "Version: $(VERSION)"
 	@echo "Architecture: $(ARCH)"
 	@echo "DEB file: $(DEB_FILE)"
+
+# Check project structure
+.PHONY: check-structure
+check-structure:
+	@echo "Checking project structure..."
+	@echo "Current directory:"
+	@pwd
+	@echo ""
+	@echo "Project files:"
+	@ls -la
+	@echo ""
+	@echo "Looking for app directory:"
+	@ls -la app/ 2>/dev/null || echo "app/ directory not found"
+	@echo ""
+	@echo "Looking for requirements.txt:"
+	@ls -la requirements.txt 2>/dev/null || echo "requirements.txt not found"
+	@echo ""
+	@echo "Looking for data directory:"
+	@ls -la data/ 2>/dev/null || echo "data/ directory not found"
 
 # Create Aiven PostgreSQL database (helper command)
 .PHONY: create-aiven-db
@@ -327,5 +322,6 @@ help:
 	@echo "  clean          - Clean build artifacts"
 	@echo "  test           - Test the installation"
 	@echo "  info           - Show package information"
+	@echo "  check-structure - Check project structure"
 	@echo "  create-aiven-db - Show instructions for Aiven database setup"
 	@echo "  help           - Show this help"

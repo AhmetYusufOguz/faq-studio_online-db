@@ -1,0 +1,16 @@
+Package: faq-studio
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: python3 (>= 3.8), python3-pip, python3-venv, curl, systemd
+Maintainer: FAQ Studio <admin@faq-studio.local>
+Description: FAQ Studio - AI-powered FAQ management system
+ FAQ Studio is an AI-powered FAQ management system that uses
+ Ollama for embeddings and supports PostgreSQL backend.
+ .
+ This package includes:
+ - FastAPI web application
+ - Ollama AI service integration
+ - Systemd service management
+ - Web-based question management interface
