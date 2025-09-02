@@ -35,11 +35,28 @@ prepare:
 .PHONY: copy-files
 copy-files: prepare
 	@echo "Copying application files..."
-	# Copy application (not in backend/ subdirectory)
-	cp -r app $(BUILD_DIR)/opt/faq-studio/
-	cp requirements.txt $(BUILD_DIR)/opt/faq-studio/ 2>/dev/null || echo "requirements.txt not found, skipping..."
-	# Copy data files
-	cp data/*.json $(BUILD_DIR)/var/lib/faq-studio/data/ 2>/dev/null || echo "No JSON files found in data/, skipping..."
+	# Copy application from existing debian/opt/faq-studio/app directory
+	# This assumes the app is already in the debian build structure
+	@if [ -d "debian/opt/faq-studio/app" ]; then \
+		echo "Found existing app in debian structure, keeping it..."; \
+	else \
+		echo "ERROR: app directory not found in debian/opt/faq-studio/"; \
+		exit 1; \
+	fi
+	# Look for requirements.txt in the app directory or root
+	@if [ -f "debian/opt/faq-studio/app/requirements.txt" ]; then \
+		cp debian/opt/faq-studio/app/requirements.txt $(BUILD_DIR)/opt/faq-studio/ 2>/dev/null || true; \
+	elif [ -f "requirements.txt" ]; then \
+		cp requirements.txt $(BUILD_DIR)/opt/faq-studio/ 2>/dev/null || true; \
+	else \
+		echo "WARNING: requirements.txt not found"; \
+	fi
+	# Copy data files from var/lib/faq-studio/data if they exist
+	@if [ -d "var/lib/faq-studio/data" ]; then \
+		cp var/lib/faq-studio/data/*.json $(BUILD_DIR)/var/lib/faq-studio/data/ 2>/dev/null || echo "No JSON files found"; \
+	else \
+		echo "No data directory found, skipping data files..."; \
+	fi
 	# Create install scripts
 	echo '#!/bin/bash' > $(BUILD_DIR)/opt/faq-studio/install-ollama.sh
 	echo 'curl -fsSL https://ollama.ai/install.sh | sh' >> $(BUILD_DIR)/opt/faq-studio/install-ollama.sh
@@ -277,14 +294,17 @@ check-structure:
 	@echo "Project files:"
 	@ls -la
 	@echo ""
-	@echo "Looking for app directory:"
-	@ls -la app/ 2>/dev/null || echo "app/ directory not found"
+	@echo "Looking for debian/opt/faq-studio/app directory:"
+	@ls -la debian/opt/faq-studio/app/ 2>/dev/null || echo "debian/opt/faq-studio/app/ directory not found"
 	@echo ""
-	@echo "Looking for requirements.txt:"
-	@ls -la requirements.txt 2>/dev/null || echo "requirements.txt not found"
+	@echo "Looking for requirements.txt in app:"
+	@ls -la debian/opt/faq-studio/app/requirements.txt 2>/dev/null || echo "requirements.txt not found in app"
 	@echo ""
-	@echo "Looking for data directory:"
-	@ls -la data/ 2>/dev/null || echo "data/ directory not found"
+	@echo "Looking for root requirements.txt:"
+	@ls -la requirements.txt 2>/dev/null || echo "requirements.txt not found in root"
+	@echo ""
+	@echo "Looking for data files in var/lib/faq-studio/data:"
+	@ls -la var/lib/faq-studio/data/ 2>/dev/null || echo "var/lib/faq-studio/data/ directory not found"
 
 # Create Aiven PostgreSQL database (helper command)
 .PHONY: create-aiven-db
