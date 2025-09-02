@@ -1,0 +1,74 @@
+#!/bin/bash
+set -e
+
+# Create users
+if ! getent group ollama > /dev/null 2>&1; then
+    addgroup --system ollama
+fi
+
+if ! getent passwd ollama > /dev/null 2>&1; then
+    adduser --system --home /var/lib/ollama --shell /bin/false --group ollama
+fi
+
+if ! getent group faq-studio > /dev/null 2>&1; then
+    addgroup --system faq-studio
+fi
+
+if ! getent passwd faq-studio > /dev/null 2>&1; then
+    adduser --system --home /var/lib/faq-studio --shell /bin/false --group faq-studio
+fi
+
+# Set permissions
+chown -R faq-studio:faq-studio /opt/faq-studio
+chown -R faq-studio:faq-studio /var/lib/faq-studio
+chmod 755 /opt/faq-studio
+chmod -R 644 /etc/faq-studio/config.env
+
+# Create Python virtual environment
+if [ ! -d "/opt/faq-studio/venv" ]; then
+    python3 -m venv /opt/faq-studio/venv
+    chown -R faq-studio:faq-studio /opt/faq-studio/venv
+fi
+
+# Install Python dependencies
+/opt/faq-studio/venv/bin/pip install --upgrade pip
+/opt/faq-studio/venv/bin/pip install -r /opt/faq-studio/requirements.txt
+
+# Install Ollama
+if [ ! -f "/usr/local/bin/ollama" ]; then
+    echo "Installing Ollama..."
+    /opt/faq-studio/install-ollama.sh
+fi
+
+# Create Ollama directories
+mkdir -p /var/lib/ollama
+chown ollama:ollama /var/lib/ollama
+
+# Reload systemd and enable services
+systemctl daemon-reload
+systemctl enable ollama.service
+systemctl enable faq-studio.service
+
+# Start services
+systemctl start ollama.service
+sleep 5  # Wait for Ollama to start
+
+# Pull the embedding model
+echo "Pulling embedding model..."
+runuser -u ollama -- /usr/local/bin/ollama pull bge-m3
+
+# Start FAQ Studio service
+systemctl start faq-studio.service
+
+echo ""
+echo "FAQ Studio installation completed!"
+echo "- Ollama is running on http://localhost:11434"
+echo "- FAQ Studio is running on http://localhost:8000"
+echo ""
+echo "Configuration file: /etc/faq-studio/config.env"
+echo "Edit the DATABASE_URL in the config file to connect to your remote database."
+echo ""
+echo "To restart services:"
+echo "  sudo systemctl restart ollama.service"
+echo "  sudo systemctl restart faq-studio.service"
+echo ""

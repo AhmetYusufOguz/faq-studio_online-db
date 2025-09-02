@@ -1,0 +1,22 @@
+#!/bin/bash
+set -e
+
+if [ "$1" = "purge" ]; then
+    # Remove systemd service files
+    rm -f /etc/systemd/system/ollama.service
+    rm -f /etc/systemd/system/faq-studio.service
+    systemctl daemon-reload
+    
+    # Remove users (optional - commented out to preserve data)
+    # deluser --quiet faq-studio || true
+    # deluser --quiet ollama || true
+
+    # Remove data directories (optional - commented out to preserve data)
+    # rm -rf /var/lib/faq-studio
+    # rm -rf /var/lib/ollama
+    
+    echo "FAQ Studio removed. Data directories preserved."
+    echo "To completely remove data:"
+    echo "  sudo rm -rf /var/lib/faq-studio"
+    echo "  sudo rm -rf /var/lib/ollama"
+fi
