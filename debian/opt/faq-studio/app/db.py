@@ -5,6 +5,14 @@ from app.config import settings
 
 def get_conn():
     conn = psycopg.connect(settings.DATABASE_URL, row_factory=dict_row)
+    # Timezone ayarını yap
+    with conn.cursor() as cur:
+        try:
+            cur.execute("SET TIME ZONE 'Europe/Istanbul'")
+            conn.commit()
+        except Exception as e:
+            print(f"Timezone ayarı yapılamadı: {e}")
+            # Hata olsa bile devam et
     # Register pgvector adapter so we can pass Vector() objects
     register_vector(conn)
     return conn
@@ -32,5 +40,12 @@ def init_db():
     
     # Şimdi vector extension yüklendiği için normal get_conn() kullanabiliriz
     # Test bağlantısı yap
-    with get_conn() as test_conn:
-        pass
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SHOW TIMEZONE")
+            result = cur.fetchone()
+            print(f"PostgreSQL Timezone: {result}")
+        
+            cur.execute("SELECT NOW() as current_time")
+            time_result = cur.fetchone()
+            print(f"PostgreSQL Current Time: {time_result['current_time']}")

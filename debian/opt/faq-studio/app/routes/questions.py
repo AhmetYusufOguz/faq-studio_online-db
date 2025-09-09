@@ -137,7 +137,7 @@ def list_questions(
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(
-            "SELECT id, question, answer, keywords, category, created_at, created_by "  # 👈 created_by eklendi
+            "SELECT id, question, answer, keywords, category, created_at, created_by "
             "FROM questions ORDER BY id DESC LIMIT %s OFFSET %s",
             (limit, offset)
         )

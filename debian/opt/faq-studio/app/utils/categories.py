@@ -79,11 +79,16 @@ class CategoryManager:
     def add_category(self, category: str) -> bool:
         """Yeni kategori ekler, zaten varsa False döndürür"""
         categories = self.load_categories()
+        print(f"DEBUG: Mevcut kategoriler: {categories}")  # ← DEBUG EKLE
+        print(f"DEBUG: Eklenmek istenen: {category}")      # ← DEBUG EKLE
+    
         if category not in categories:
             categories.append(category)
             self.save_categories(categories)
+            print(f"DEBUG: Kategori eklendi: {category}")  # ← DEBUG EKLE
             logger.info("Category added: %s (total: %s)", category, len(categories))
             return True
+        print(f"DEBUG: Kategori zaten var: {category}")    # ← DEBUG EKLE
         logger.debug("Category already exists: %s", category)
         return False
     

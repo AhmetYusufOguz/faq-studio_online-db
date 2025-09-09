@@ -1,0 +1,30 @@
+# Aiven'deki service aktif edilmeli.
+
+# Başlat
+sudo systemctl start ollama
+sudo systemctl start faq-studio
+
+# Paket kurulumu
+./build-deb.sh
+
+# Stop
+sudo systemctl stop ollama
+sudo systemctl stop faq-studio
+
+# Restart
+sudo systemctl restart ollama
+sudo systemctl restart faq-studio
+
+# Durumları kontrol et
+sudo systemctl status ollama
+sudo systemctl status faq-studio
+
+
+
+# Her iki servisi de otomatik başlatma için etkinleştir
+sudo systemctl enable ollama
+sudo systemctl enable faq-studio
+
+
+### Log'u kontrol eder
+sudo journalctl -u faq-studio.service -f

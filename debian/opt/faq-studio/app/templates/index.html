@@ -76,7 +76,7 @@
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Soru</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Kategori</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Tarih</th>
-              <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Ekleyen</th>
+              <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Ekleyennnn</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">İşlem</th>
             </tr>
           </thead>
@@ -287,12 +287,9 @@
     // categories.js veya mevcut JavaScript içinde
     function sortCategoriesForDisplay(categories) {
         return [...categories].sort((a, b) => {
-            // 'diger' her zaman en sonda
             if (a.toLowerCase() === 'diger') return 1;
             if (b.toLowerCase() === 'diger') return -1;
-            
-            // Diğer kategorileri alfabetik sırala
-            return b.cnt - a.cnt;
+            return a.localeCompare(b, 'tr');  // ← Alfabetik sırala
         });
     }
 
@@ -316,25 +313,26 @@
         
         // Tüm option'ları temizle (ilk iki hariç)
         while (catSel.options.length > 2) {
-            catSel.remove(2); // İlk iki option'ı koru
+            catSel.remove(2);
         }
         
-        // Kategorileri alfabetik sırala ve ekle
+        // Kategorileri özel sırala: diger en sonda, diğerleri alfabetik
         const sortedCategories = [...categories].sort((a, b) => {
             if (a.toLowerCase() === 'diger') return 1;
             if (b.toLowerCase() === 'diger') return -1;
             return a.localeCompare(b, 'tr');
         });
 
+        // Sıralanmış kategorileri ekle
         sortedCategories.forEach(category => {
             const option = document.createElement('option');
             option.value = category;
             option.textContent = category;
-            catSel.add(option, catSel.options[catSel.options.length - 1]);
+            catSel.add(option);  // Sonuna ekle
         });
         
-        // Önceki değeri geri yükle (eğer hala mevcutsa)
-        if (currentValue && Array.from(catSel.options).some(opt => opt.value === currentValue)) {
+        // Önceki değeri geri yükle
+        if (currentValue) {
             catSel.value = currentValue;
         }
     }
