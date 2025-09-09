@@ -210,3 +210,5 @@ config.env
 
 # Questions
 questions.json
+
+faq-studio.service

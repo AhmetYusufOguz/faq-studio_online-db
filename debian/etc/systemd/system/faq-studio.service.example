@@ -1,0 +1,28 @@
+[Unit]
+Description=FAQ Studio API
+After=network.target
+
+[Service]
+Type=simple
+User=faq-studio
+Group=faq-studio
+WorkingDirectory=/opt/faq-studio
+Environment="LD_LIBRARY_PATH=/usr/local/lib"
+Environment="PYTHONPATH=/opt/faq-studio"
+Environment="DATABASE_URL=${DATABASE_URL}"
+Environment="OLLAMA_BASE_URL=http://localhost:11434"
+Environment="EMBED_MODEL=bge-m3"
+Environment="SIM_THRESHOLD=0.70"
+Environment="JSON_PATH=/var/lib/faq-studio/data/questions.json"
+Environment="CATEGORIES_PATH=/var/lib/faq-studio/data/categories.json"
+Environment="CHROMA_DB_PATH=/var/lib/faq-studio/chroma_db"
+Environment="HOST=0.0.0.0"
+Environment="PORT=8000"
+Environment="LOG_LEVEL=INFO"
+Environment="DEBUG=false"
+ExecStart=/opt/faq-studio/venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
