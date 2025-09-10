@@ -13,6 +13,7 @@
     .warn{background:#3a2;border:1px solid #7c2;padding:10px;margin-top:10px}
     .ok{background:#163;border:1px solid #2a5;padding:10px;margin-top:10px}
     a{color:#7cc}
+    #catChart {background-color: #1a1a1a; /* Canvas arka plan rengi */ border-radius: 6px;}
   </style>
 </head>
 <body>
@@ -53,7 +54,7 @@
     <div id="saveBox"></div>
   </form>
 
-  <!-- Recent Records Modal -->
+  <!-- Son Kayıtlar Modal'ı -->
   <div id="recentModal" aria-hidden="true" role="dialog" aria-labelledby="recentTitle"
        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:9999;">
     <div style="background:#111; color:#cccccc; width:min(950px, 96%); margin:60px auto; border:1px solid #333; border-radius:8px; overflow:hidden;">
@@ -76,7 +77,7 @@
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Soru</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Kategori</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Tarih</th>
-              <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Ekleyennnn</th>
+              <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">Ekleyen</th>
               <th style="text-align:left;border-bottom:1px solid #333;padding:8px;">İşlem</th>
             </tr>
           </thead>
@@ -149,6 +150,48 @@
                 style="background:#444; color:white; border:0; padding:8px 15px; cursor:pointer;">İptal</button>
       </div>
     </div>
+  </div>
+
+  <!-- Soru Detay/Güncelleme Modal'ı -->
+  <div id="detailModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10000;">
+      <div style="background:#111; padding:20px; margin:50px auto; width:min(800px, 90%); border:1px solid #333; border-radius:8px; max-height:80vh; overflow-y:auto;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+              <h3 style="margin:0;">Soru Detayları</h3>
+              <button onclick="closeDetailModal()" style="background:#222;color:#eee;border:1px solid #444;padding:6px 10px;cursor:pointer;">✕</button>
+          </div>
+          
+          <form id="updateForm">
+              <input type="hidden" id="updateId" value="">
+              
+              <label style="display:block; margin-bottom:5px;">Soru:</label>
+              <textarea id="updateQuestion" rows="3" style="width:100%; padding:8px; background:#222; border:1px solid #444; color:#eee; margin-bottom:15px;"></textarea>
+              
+              <label style="display:block; margin-bottom:5px;">Cevap:</label>
+              <textarea id="updateAnswer" rows="6" style="width:100%; padding:8px; background:#222; border:1px solid #444; color:#eee; margin-bottom:15px;"></textarea>
+              
+              <label style="display:block; margin-bottom:5px;">Anahtar Kelimeler:</label>
+              <input type="text" id="updateKeywords" style="width:100%; padding:8px; background:#222; border:1px solid #444; color:#eee; margin-bottom:15px;">
+              
+              <label style="display:block; margin-bottom:5px;">Kategori:</label>
+              <select id="updateCategory" style="width:100%; padding:8px; background:#222; border:1px solid #444; color:#eee; margin-bottom:15px;">
+                  <option value="">Seçiniz</option>
+              </select>
+              
+              <label style="display:block; margin-bottom:5px;">Güncelleyen:</label>
+              <input type="text" id="updatedBy" placeholder="Kullanıcı adınız" style="width:100%; padding:8px; background:#222; border:1px solid #444; color:#eee; margin-bottom:15px;">
+              
+              <div style="display:flex; gap:10px; justify-content:flex-end;">
+                  <button type="button" onclick="updateQuestion()" style="background:#2d5; color:#000; border:0; padding:10px 20px; cursor:pointer;">Güncelle</button>
+                  <button type="button" onclick="closeDetailModal()" style="background:#444; color:white; border:0; padding:10px 20px; cursor:pointer;">İptal</button>
+              </div>
+          </form>
+          
+          <div style="margin-top:20px; padding-top:15px; border-top:1px solid #333; font-size:0.9em; color:#999;">
+              <div><strong>ID:</strong> <span id="detailId"></span></div>
+              <div><strong>Oluşturan:</strong> <span id="detailCreatedBy"></span></div>
+              <div><strong>Oluşturma Tarihi:</strong> <span id="detailCreatedAt"></span></div>
+          </div>
+      </div>
   </div>
 
   <script>
@@ -390,15 +433,16 @@
           for (const record of rows) {
             tbody.insertAdjacentHTML('beforeend',
               `<tr data-row-id="${record.id ?? ''}">
-                 <td style="border-bottom:1px solid #222;padding:8px;">${record.id ?? ''}</td>
-                 <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.question)}</td>
-                 <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.category)}</td>
-                 <td style="border-bottom:1px solid #222;padding:8px;">${formatDateTime(record.created_at)}</td>
-                 <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.created_by || 'anonymous')}</td>
-                 <td style="border-bottom:1px solid #222;padding:8px;">
-                    <button class="btn-del" data-id="${record.id ?? ''}" style="background:#933;color:#fff;border:0;padding:6px 10px;cursor:pointer;">Sil</button>
-                  </td>
-               </tr>`);
+                <td style="border-bottom:1px solid #222;padding:8px;">${record.id ?? ''}</td>
+                <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.question)}</td>
+                <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.category)}</td>
+                <td style="border-bottom:1px solid #222;padding:8px;">${formatDateTime(record.created_at)}</td>
+                <td style="border-bottom:1px solid #222;padding:8px;">${safeHtml(record.created_by || 'anonymous')}</td>
+                <td style="border-bottom:1px solid #222;padding:8px;">
+                  <button class="btn-view" data-id="${record.id ?? ''}" style="background:#2ad;color:#000;border:0;padding:6px 10px;cursor:pointer;margin-right:5px;">Görüntüle</button>
+                  <button class="btn-del" data-id="${record.id ?? ''}" style="background:#933;color:#fff;border:0;padding:6px 10px;cursor:pointer;">Sil</button>
+                </td>
+              </tr>`);
           }
         }
 
@@ -502,6 +546,11 @@
         
         // Özel renk paleti - diger kategorisi gri olsun
         const backgroundColors = generateSpecialColors(data);
+
+        // Arka plan rengini koyu yap
+        Chart.defaults.backgroundColor = '#1a1a1a';
+        Chart.defaults.borderColor = '#333';
+        Chart.defaults.color = '#cccccc';
         
         chart = new Chart(ctx, {
             type: 'pie',
@@ -522,6 +571,7 @@
                     legend: {
                         position: 'left',
                         labels: {
+                            color: '#cccccc', // Legend yazı rengi
                             generateLabels(chart) {
                               // 1) Default label’ları al
                               const defaults = Chart.overrides.pie.plugins.legend.labels.generateLabels(chart);
@@ -534,6 +584,9 @@
                                 return {
                                   ...item,                         // ← default stiller (renk vb.) korunur
                                   text: `${chart.data.labels[i]}: ${value} (${pct}%)`,
+                                  fillStyle: item.fillStyle,      // Renkleri koru
+                                  strokeStyle: item.strokeStyle,
+                                  lineWidth: item.lineWidth
                                 };
                               });
                             }
@@ -596,11 +649,30 @@
 
     // Dışa aktarma fonksiyonu
     document.getElementById('exportStats').addEventListener('click', function() {
-        if (chart) {
+        if (chart) {        
+            // Chart'ı güncelle
+            chart.update();
+
+            // Canvas'ın kopyasını oluştur
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = chart.canvas.width;
+            tempCanvas.height = chart.canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // Önce koyu arka planı çiz
+            tempCtx.fillStyle = '#1a1a1a';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+            // Sonra chart'ı çiz
+            tempCtx.drawImage(chart.canvas, 0, 0);
+        
+            // Resmi indir
             const imageLink = document.createElement('a');
-            imageLink.href = chart.toBase64Image();
+            imageLink.href = tempCanvas.toDataURL('image/png');
             imageLink.download = 'kategori-istatistikleri.png';
+            document.body.appendChild(imageLink);
             imageLink.click();
+            document.body.removeChild(imageLink);
         }
     });
 
@@ -731,6 +803,155 @@
     document.addEventListener('DOMContentLoaded', async () => {
       await refreshCategories();
     });
+
+    // Görüntüle butonları için event listener
+    document.getElementById('recentTbody').addEventListener('click', async (e) => {
+      const viewBtn = e.target.closest('.btn-view');
+      if (viewBtn) {
+        const id = viewBtn.getAttribute('data-id');
+        if (id) {
+          await openDetailModal(id);
+        }
+        return;
+      }
+      const delBtn = e.target.closest('.btn-del');
+      if (delBtn) {
+        const tr = delBtn.closest('tr');
+        const id = delBtn.getAttribute('data-id');
+        const question = tr.querySelector('td:nth-child(2)').textContent;
+        if (id && question) {
+          showDeleteModal(id, question);
+        }
+      }
+    });
+    
+    // Event listener'ı güncelle
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('.btn-del')) {
+            const id = e.target.dataset.id;
+            const row = e.target.closest('tr');
+            const question = row.querySelector('td:nth-child(2)').textContent;
+            openDeleteModal(id, question);
+        } else if (e.target.matches('.btn-view')) {
+            const id = e.target.dataset.id;
+            openDetailModal(id);
+        }
+    });
+
+    // Detay modalı açma fonksiyonu
+    async function openDetailModal(id) {
+        const modal = document.getElementById('detailModal');
+        
+        try {
+            // Soru detaylarını getir
+            const response = await fetch(`/questions/${id}`);
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            
+            const question = await response.json();
+            
+            // Form alanlarını doldur
+            document.getElementById('updateId').value = question.id;
+            document.getElementById('updateQuestion').value = question.question || '';
+            document.getElementById('updateAnswer').value = question.answer || '';
+            document.getElementById('updateKeywords').value = question.keywords || '';
+            document.getElementById('updatedBy').value = '';
+            
+            // Detay bilgileri
+            document.getElementById('detailId').textContent = question.id;
+            document.getElementById('detailCreatedBy').textContent = question.created_by || 'anonymous';
+            document.getElementById('detailCreatedAt').textContent = formatDateTime(question.created_at);
+            
+            // Kategorileri yükle ve seç
+            await loadCategoriesForUpdate();
+            document.getElementById('updateCategory').value = question.category || '';
+            
+            modal.style.display = 'block';
+            
+        } catch (error) {
+            alert('Soru detayları yüklenirken hata oluştu: ' + error.message);
+        }
+    }
+
+    // Kategorileri güncelleme formu için yükleme
+    async function loadCategoriesForUpdate() {
+        try {
+            const response = await fetch('/categories.json');
+            if (!response.ok) return;
+            
+            const categories = await response.json();
+            const select = document.getElementById('updateCategory');
+            
+            // Mevcut seçenekleri temizle (ilk option hariç)
+            const firstOption = select.querySelector('option');
+            select.innerHTML = '';
+            select.appendChild(firstOption);
+            
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                select.appendChild(option);
+            });
+            
+        } catch (error) {
+            console.error('Kategoriler yüklenirken hata:', error);
+        }
+    }
+
+    // Soru güncelleme fonksiyonu
+    async function updateQuestion() {
+        const id = document.getElementById('updateId').value;
+        const question = document.getElementById('updateQuestion').value.trim();
+        const answer = document.getElementById('updateAnswer').value.trim();
+        const keywords = document.getElementById('updateKeywords').value.trim();
+        const category = document.getElementById('updateCategory').value;
+        const updatedBy = document.getElementById('updatedBy').value.trim() || 'anonymous';
+        
+        if (!question) {
+            alert('Soru boş olamaz');
+            return;
+        }
+        if (!answer) {
+            alert('Cevap boş olamaz');
+            return;
+        }
+        if (!category) {
+            alert('Kategori seçilmeli');
+            return;
+        }
+        
+        try {
+            const formData = new FormData();
+            formData.append('question', question);
+            formData.append('answer', answer);
+            formData.append('keywords', keywords);
+            formData.append('category', category);
+            formData.append('updated_by', updatedBy);
+            
+            const response = await fetch(`/questions/${id}`, {
+                method: 'PUT',
+                body: formData
+            });
+            
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            
+            alert('Soru başarıyla güncellendi!');
+            closeDetailModal();
+            
+            // Listeyi yenile
+            if (document.getElementById('recentModal').style.display !== 'none') {
+                await loadRecentRecords();
+            }
+            
+        } catch (error) {
+            alert('Güncelleme hatası: ' + error.message);
+        }
+    }
+
+    // Detay modalını kapatma
+    function closeDetailModal() {
+        document.getElementById('detailModal').style.display = 'none';
+    }
   </script>
 </body>
 </html>

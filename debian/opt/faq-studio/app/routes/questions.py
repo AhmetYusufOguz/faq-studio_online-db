@@ -121,6 +121,28 @@ async def add_question(
     return {"ok": True, "id": new_id}
 
 
+@router.get("/questions/{qid}")
+def get_question_detail(request: Request, qid: int):
+    """Tek bir sorunun detaylarını getirir"""
+    logger.debug(
+        "Get question detail id=%s req_id=%s ip=%s",
+        qid,
+        getattr(request.state, 'request_id', 'unknown'),
+        getattr(request.state, 'client_ip', 'unknown')
+    )
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, question, answer, keywords, category, created_at, created_by "
+            "FROM questions WHERE id = %s",
+            (qid)
+        )
+        result = cur.fetchone()
+        if not result:
+            raise HTTPException(status_code=404, detail="Soru bulunamadı")
+        return result
+
+
 @router.get("/questions")
 def list_questions(
     request: Request,
@@ -161,37 +183,6 @@ def questions_table(request: Request):
     return templates.TemplateResponse("questions.html", {"request": request, "rows": rows})
 
 
-@router.delete("/questions/{qid}")
-async def delete_question(
-    request: Request,
-    qid: int,
-    deleted_by: str = Form("anonymous")
-):
-    """Soru siler - ChromaDB ile"""
-    # Veritabanından sil
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("DELETE FROM questions WHERE id = %s RETURNING id", (qid,))
-        deleted = cur.fetchone()
-        if not deleted:
-            raise HTTPException(status_code=404, detail="Soru bulunamadı")
-        conn.commit()
-
-    # ChromaDB'den sil
-    chroma_service.delete_question(qid)
-    
-    # JSON dosyasından sil
-    success = remove_question_from_json(qid)
-    
-    logger.info(
-        "Deleted id=%s deleted_by=%s req_id=%s ip=%s",
-        qid, deleted_by,  # 👈 Silen kişiyi logla (sadece log için)
-        getattr(request.state, 'request_id', 'unknown'),
-        getattr(request.state, 'client_ip', 'unknown')
-    )
-    
-    return {"ok": True, "deleted_id": qid, "json_updated": success}
-
-
 @router.get("/questions/search")
 def search_questions(
     request: Request,
@@ -229,3 +220,90 @@ def get_categories(request: Request):
     )
     
     return load_categories()
+
+
+@router.put("/questions/{qid}")
+async def update_question(
+    request: Request,
+    qid: int,
+    question: str = Form(...),
+    answer: str = Form(...),
+    keywords: str = Form(...),
+    category: str = Form(...),
+    updated_by: str = Form("anonymous")
+):
+    """Soru günceller - ChromaDB ile"""
+    # Yeni embedding hesapla
+    vec = embed(question)
+    vec_str = embedding_to_vector_str(vec)
+
+    # Veritabanında güncelle
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE questions SET question = %s, answer = %s, keywords = %s, "
+            "category = %s, embedding = %s::vector, updated_at = NOW() "
+            "WHERE id = %s RETURNING id",
+            (question, answer, keywords, category, vec_str, qid)
+        )
+        result = cur.fetchone()
+        if not result:
+            raise HTTPException(status_code=404, detail="Soru bulunamadı")
+        conn.commit()
+
+    # ChromaDB'den eski kaydı sil ve yenisini ekle
+    chroma_service.delete_question(qid)
+    chroma_service.add_question(
+        qid, question, answer, keywords, category, vec.tolist()
+    )
+
+    # JSON dosyasında güncelle
+    from ..utils.json_io import json_manager
+    json_manager.update_question(qid, {
+        "question": question,
+        "answer": answer,
+        "keywords": keywords,
+        "category": category
+    })
+
+    # Kategoriyi güncelle (yoksa ekle)
+    add_category_if_new(category)
+
+    logger.info(
+        "Updated id=%s cat=%s qlen=%s by=%s req_id=%s ip=%s",
+        qid, category, len(question), updated_by,
+        getattr(request.state, 'request_id', 'unknown'),
+        getattr(request.state, 'client_ip', 'unknown')
+    )
+    
+    return {"ok": True, "id": qid}
+
+
+@router.delete("/questions/{qid}")
+async def delete_question(
+    request: Request,
+    qid: int,
+    deleted_by: str = Form("anonymous")
+):
+    """Soru siler - ChromaDB ile"""
+    # Veritabanından sil
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("DELETE FROM questions WHERE id = %s RETURNING id", (qid,))
+        deleted = cur.fetchone()
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Soru bulunamadı")
+        conn.commit()
+
+    # ChromaDB'den sil
+    chroma_service.delete_question(qid)
+    
+    # JSON dosyasından sil
+    success = remove_question_from_json(qid)
+    
+    logger.info(
+        "Deleted id=%s deleted_by=%s req_id=%s ip=%s",
+        qid, deleted_by,  # 👈 Silen kişiyi logla (sadece log için)
+        getattr(request.state, 'request_id', 'unknown'),
+        getattr(request.state, 'client_ip', 'unknown')
+    )
+    
+    return {"ok": True, "deleted_id": qid, "json_updated": success}
