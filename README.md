@@ -44,8 +44,8 @@ chmod +x build-deb.sh
 ### Manuel Kurulum
 1. **Gereksinimler:**
 ```bash
-# PostgreSQL kurulumu
-sudo apt install postgresql postgresql-contrib
+# Python ve bağımlılıkların kurulumu (Debian/Ubuntu)
+sudo apt install python3.11 python3.11-venv python3-pip
 
 # Python ve diğer bağımlılıklar
 sudo apt install python3.11 python3.11-venv python3-pip
@@ -53,9 +53,19 @@ sudo apt install python3.11 python3.11-venv python3-pip
 2. **Veritabanı Ayarları:**
 ```bash
 # PostgreSQL kullanıcı ve veritabanı oluştur
-sudo -u postgres psql -c "CREATE USER faqstudio WITH PASSWORD 'your_password';"
-sudo -u postgres psql -c "CREATE DATABASE faqdb OWNER faqstudio;"
-sudo -u postgres psql -d faqdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
+# Bu proje Aiven PostgreSQL üzerinde çalışacak şekilde ayarlanmıştır.
+# Aiven hesabınızda yeni bir PostgreSQL servisi oluşturun.
+# Servis oluşturulduğunda size bir connection string (ör: postgres://user:pass@host:port/dbname) verilir.
+# Bu bilgiyi .env dosyasında DATABASE_URL olarak ayarlayın.
+
+# Örnek .env
+# DATABASE_URL=postgres://faqstudio:your_password@your_aiven_host:your_port/faqdb
+# OLLAMA_BASE_URL=http://localhost:11434
+
+# Not: Lokal PostgreSQL kullanacaksanız aşağıdaki adımları uygulayın:
+# sudo -u postgres psql -c "CREATE USER faqstudio WITH PASSWORD 'your_password';"
+# sudo -u postgres psql -c "CREATE DATABASE faqdb OWNER faqstudio;"
+# sudo -u postgres psql -d faqdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
 ```
 3. **Ollama Kurulumu:**
 ```bash
@@ -80,14 +90,13 @@ cp config.env.example .env
 ```
 5. **Veritabanı İnisializasyonu:**
 ```bash
-# Şema oluşturma
+# (Sadece lokal PostgreSQL için)
 python -c "from app.db import init_db; init_db()"
 ```
 6. **Servisleri Başlatma:**
 ```bash
 # Ollama servisi
 sudo systemctl start ollama
-
 # FAQ Studio servisi
 sudo systemctl start faq-studio
 ```
